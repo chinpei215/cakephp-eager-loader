@@ -18,6 +18,9 @@ class EagerLoadableBehavior extends ModelBehavior {
 		if ($id) {
 			$EagerLoader = ClassRegistry::init('EagerLoadable.EagerLoader');
 			$EagerLoader->id = $id;
+			foreach ($results as &$result) {
+				unset($result['EagerLoader']);
+			}
 			return $EagerLoader->loadExternal($model->alias, $results);
 		}
 	}
