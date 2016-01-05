@@ -1,89 +1,79 @@
 <?php
 
-class EagerLoader extends Model
-{
+class EagerLoader extends Model {
+
 	public $useTable = false;
 
-	private $options = [];
+	private $settings = [];
 
 	private $containOptions = [
-		'associations' => 1,
-		'foreignKey' => 1,
 		'conditions' => 1,
 		'fields' => 1,
-		'sort' => 1,
-		'matching' => 1,
-		'queryBuilder' => 1,
-		'finder' => 1,
-		'joinType' => 1,
-		'strategy' => 1,
-		'negateMatch' => 1
+		'order' => 1,
+		'limit' => 1,
 	];
 
 	public function isVirtualField($field) {
 		return true;
 	}
 
-	public function attachAssociations(Model $model, $query, $primary = true) {
-		$db = $model->getDataSource();
-		$query['fields'] = $db->fields($model);
+/**
+ * 
+ *
+ * @param $model
+ * @param $query
+ *
+ * @return array
+ */
+	public function transformQuery(Model $model, $query) {
+		static $id = 0;
+		$this->id = (++$id);
 
-		$containments = $this->reformatContain($query['contain']);
-
-		$queue = [];
-		foreach ($containments as $alias => $options) {
-			$queue[] = [
-				'container' => $model,
-				'aliasPath' => ($primary ? '' : $model->alias . '.') . $alias,
-				'alias' => $alias,
-				'options' => $options,
-			];
+		$contain = $this->reformatContain($query['contain']);
+		foreach ($contain['contain'] as $key => $val) {
+			$this->parseContain($model, $key, $val, [
+				'root' => $model->alias, 
+				'aliasPath' => $model->alias,
+			]);
 		}
 
-		$joined = [];
-		$external = [];
+		$query = $this->attachAssociations($model, $model->alias, $query);
+		$query['fields'] = array_merge(['(' . $this->id . ') AS EagerLoader__id'], $query['fields']);
 
-		while ($data = array_shift($queue)) {
-			$alias = $data['alias'];
-			$container = $data['container'];
-			$aliasPath = $data['aliasPath'];
-			$options = $data['options'];
+		return $query;
+	}
 
-			$target = $container->$alias;
-			if (!$target instanceof Model) {
-				trigger_error(sprintf('Model "%s" is not associated with model "%s"', $container->alias, $alias), E_USER_WARNING);
-				continue;
-			}
+/**
+ * 
+ *
+ * @param $model
+ * @param $query
+ *
+ * @return array
+ */
+	public function attachAssociations(Model $model, $path, array $query) {
+		$db = $model->getDataSource();
 
-			if (isset($joined[$alias]) || $model->useDbConfig !== $target->useDbConfig || (!isset($container->belongsTo[$alias]) && !isset($container->hasOne[$alias]))) {
-				$external[] = $data;
-				continue;
-			}
+		$query += [
+			'fields' => [],
+			'conditions' => [],
+		];
+		$query['fields'] = array_merge((array)$query['fields'], $db->fields($model));
 
-			foreach ($options as $key => $val) {
-				if (!isset($this->containOptions[$key])) {
-					$queue[] = [
-						'container' => $target,
-						'aliasPath' => $aliasPath . '.' . $key,
-						'alias' => $key,
-						'options' => $val,
-					];
+		$map =& $this->settings[$this->id]['map'][$path];
 
-					unset($options[$key]);
-				}
-			}
+		foreach ($map['joins'] as $meta) {
+			extract($meta);
 
-			if (isset($container->belongsTo[$alias])) {
-				$foreignKey = $container->belongsTo[$alias]['foreignKey'];
-				$conditions = $db->getConstraint('belongsTo', $container, $target, $target->alias, compact('foreignKey'));
-				$field = $container->schema($foreignKey);
+			$joinType = 'LEFT';
+			if ($belong) {
+				$field = $parent->schema($parentKey);
 				$joinType = ($field['null'] ? 'LEFT' : 'INNER');
-			} else {
-				$foreignKey = $container->hasOne[$alias]['foreignKey'];
-				$conditions = $db->getConstraint('hasOne', $container, $target, $target->alias, compact('foreignKey'));
-				$joinType = 'LEFT';
 			}
 
+			$conditions = [
+				"$parentAlias.$parentKey" => $db->identifier("$alias.$targetKey")
+			];
 			if (isset($options['conditions'])) {
 				$conditions = array_merge($conditions, (array)$options['conditions']);
 			}
@@ -96,123 +86,209 @@ class EagerLoader extends Model
 			];
 
 			$query['fields'] = array_merge($query['fields'], $db->fields($target));
-
-			$joined[$alias] = $aliasPath;
 		}
 
-		$query['fields'][] = '(' . $this->id . ') AS EagerLoader__id';
 		$query['recursive'] = -1;
 		$query['contain'] = false;
-		$query['eagerLoader'] = [
-			'joined' => $joined,
-			'external' => $external,
-		];
 
 		return $query;
 	}
 
-	public function loadExternal($query, array $results) {
-		foreach ($query['eagerLoader']['external'] as $data) {
-			$container = $data['container'];
-			$alias = $data['alias'];
-			$aliasPath = $data['aliasPath'];
-			$options = $data['options'];
-			$target = $container->$alias;
+/**
+ * 
+ * @param string $path
+ * @param array $results
+ *
+ * @return array
+ */
+	public function loadExternal($path, array $results) {
+		$map =& $this->settings[$this->id]['map'][$path];
+
+		foreach ($map['externals'] as $meta) {
+			extract($meta);
 
 			$db = $target->getDataSource();
 
-			// TODO: reformatContain
-			$contain = array_diff_key($options, $this->containOptions);
-			$options = array_diff_key($options, $contain);
-			$options['contain'] = $contain;
-			$options += ['conditions' => []];
+			if ($has && $belong) {
+				$options += [
+					'fields' => [],
+				];
+				$options['fields'] = array_merge((array)$options['fields'], $db->fields($habtm));
+				$options['joins'][] = [
+					'type' => 'INNER',
+					'table' => $db->fullTableName($habtm),
+					'alias' => $habtmAlias,
+					'conditions' => [
+						"$alias.$assocKey" => $db->identifier("$habtmAlias.$habtmKey")
+					]
+				];
+			}
 
-			if (isset($container->hasMany[$alias]) && !isset($options['limit'])) {
-				$ids = Hash::extract($results, '{n}.' . $container->alias . '.' . $container->primaryKey);
+			$options = $this->attachAssociations($target, $aliasPath, $options);
 
-				$foreignKey = $container->hasMany[$alias]['foreignKey'];
-				$options['conditions'] = array_merge($options['conditions'], [$alias . '.' . $foreignKey => $ids]);
-				$options = $this->attachAssociations($target, $options, false);
-				
-				$many = $this->loadExternal($options, $db->read($target, $options));
+			if (empty($options['limit'])) {
+				$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
+				$ids = array_unique($ids);
+				$options['conditions'] = array_merge($options['conditions'], ["$alias.$targetKey" => $ids]);
+				$assocResults = $this->loadExternal($aliasPath, $db->read($target, $options));
+			}
 
-				$indexed = Hash::combine($many, "{n}.$alias.{$target->primaryKey}", "{n}.$alias", "{n}.$alias.{$foreignKey}");
+			foreach ($results as &$result) {
+				$assoc = [];
 
-				foreach ($results as &$result) {
-					$id = $result[$container->alias][$container->primaryKey];
-					$insert = isset($indexed[$id]) ? array_values($indexed[$id]) : [];
-					$result = Hash::insert($result, $aliasPath, $insert);
+				if (!empty($options['limit'])) {
+					$eachOptions = $options;
+					$eachOptions['conditions']["$alias.$targetKey"] = $result[$parentAlias][$parentKey];
+					$assocResults = $this->loadExternal($aliasPath, $db->read($target, $eachOptions));
+				}
+				foreach ($assocResults as $assocResult) {
+					if ($result[$parentAlias][$parentKey] == $assocResult[$alias][$targetKey]) {
+						if ($has && $belong) {
+							$assoc[] = $assocResult[$habtmAlias] + [$alias => $assocResult[$alias]];
+						} else {
+							$assoc[] = $assocResult[$alias];
+						}
+					}
+				}
+				if (!$many) {
+					$assoc = $assoc ? current($assoc) : [];
 				}
 
-				unset($result);
-			} else {
-				//TODO
+				$result = Hash::insert($result, $propertyPath, $assoc);
 			}
+			unset($result);
 		}
 
-		foreach ($results as &$result) {
-			unset($result[$this->alias]);
-			foreach ($query['eagerLoader']['joined'] as $alias => $aliasPath) {
-				if ($alias !== $aliasPath) {
-					$result = Hash::insert($result, $aliasPath, $result[$alias] + (array)Hash::get($result, $aliasPath));
+		foreach ($map['joins'] as $meta) {
+			extract($meta);
+			foreach ($results as &$result) {
+				if ($alias !== $propertyPath) {
+					$result = Hash::insert($result, $propertyPath, $result[$alias] + (array)Hash::get($result, $propertyPath));
 					unset($result[$alias]);
 				}
 			}
+		}
+		
+		foreach ($results as &$result) {
+			unset($result[$this->alias]);
 		}
 
 		return $results;
 	}
 
-	private function reformatContain($associations, $original = []) {
-		$result = $original;
+/**
+ * 
+ *
+ * @param $contain
+ *
+ * @return array
+ */
+	private function reformatContain($contain) {
+		$result = [
+			'contain' => [],
+			'options' => [],
+		];
 
-		foreach ((array)$associations as $model => $options) {
-			$pointer =& $result;
-			if (is_int($model)) {
-				$model = $options;
-				$options = [];
+		$contain = (array)$contain;
+		foreach ($contain as $key => $val) {
+			if (is_int($key)) {
+				$key = $val;
+				$val = [];
 			}
 
-			//if ($options instanceof EagerLoadable) {
-			//	$options = $options->asContainArray();
-			//	$model = key($options);
-			//	$options = current($options);
-			//}
-
-			if (isset($this->containOptions[$model])) {
-				$pointer[$model] = $options;
-				continue;
-			}
-
-			if (strpos($model, '.')) {
-				$path = explode('.', $model);
-				$model = array_pop($path);
-				foreach ($path as $t) {
-					$pointer += [$t => []];
-					$pointer =& $pointer[$t];
+			if (!isset($this->containOptions[$key])) {
+				if (strpos($key, '.') !== false) {
+					$expanded = Hash::expand([$key => $val]);
+					list($key, $val) = each($expanded);
 				}
+				$ref =& $result['contain'][$key];
+				$ref = Hash::merge((array)$ref, $this->reformatContain($val));
+			} else {
+				$result['options'][$key] = $val;
 			}
-
-			if (is_array($options)) {
-				//$options = isset($options['config']) ?
-				//	$options['config'] + $options['associations'] :
-				//	$options;
-
-				$options = $this->reformatContain(
-					$options,
-					isset($pointer[$model]) ? $pointer[$model] : []
-				);
-			}
-
-			//if ($options instanceof Closure) {
-			//	$options = ['queryBuilder' => $options];
-			//}
-
-			$pointer += [$model => []];
-			$pointer[$model] = $options + $pointer[$model];
 		}
 
 		return $result;
 	}
 
+/**
+ * 
+ *
+ * @param $parent
+ * @param $alias
+ * @param $contain
+ * @param $paths
+ *
+ * @return array
+ */
+	private function parseContain(Model $parent, $alias, $contain, array $paths) {
+		$contain = (array)$contain;
+
+		$map =& $this->settings[$this->id]['map'];
+
+		$aliasPath = $paths['aliasPath'] . '.' . $alias;
+		$propertyPath = implode('.', array_slice(explode('.', $aliasPath), 1));
+
+		$map[$aliasPath] = [
+			'joins' => [],
+			'externals' => [],
+		];
+
+		$types = $parent->getAssociated();
+		if (!isset($types[$alias])) {
+			trigger_error(sprintf('Model "%s" is not associated with model "%s"', $parent->alias, $alias), E_USER_WARNING);
+			return;
+		}
+
+		$parentAlias = $parent->alias;
+		$target = $parent->$alias;
+		$type = $types[$alias];
+		$relation = $parent->{$type}[$alias];
+
+		$has = (stripos($type, 'has') !== false);
+		$many = (stripos($type, 'many') !== false);
+		$belong = (stripos($type, 'belong') !== false);
+
+		if ($has) {
+			$parentKey = $parent->primaryKey;
+			$targetKey = $relation['foreignKey'];
+		} else {
+			$parentKey = $relation['foreignKey'];
+			$targetKey = $target->primaryKey;
+		}
+
+		if ($has && $belong) {
+			$habtm = $target;
+			$habtmAlias = $alias;
+			$habtmKey = $habtm->primaryKey;
+			$assocKey = $relation['associationForeignKey'];
+			$alias = $relation['with'];
+			$target = $parent->$alias;
+		}
+
+		$options = $contain['options'];
+
+		$meta = compact(
+			'parent', 'target',
+			'parentAlias', 'parentKey',
+			'alias', 'targetKey',
+			'aliasPath', 'propertyPath',
+			'type', 'options', 'has', 'many', 'belong',
+			'habtm', 'habtmAlias', 'habtmKey', 'assocKey'
+		);
+
+		$tmp = explode($paths['aliasPath'], '.');
+		$rootAlias = end($tmp);
+		if ($many || $alias === $rootAlias || isset($map[$paths['root']]['joins'][$alias])) {
+			$paths['root'] = $aliasPath;
+			$map[$paths['aliasPath']]['externals'][$alias] = $meta;
+		} else {
+			$map[$paths['root']]['joins'][$alias] = $meta;
+		}
+
+		$paths['aliasPath'] = $aliasPath;
+		foreach ($contain['contain'] as $key => $val) {
+			$this->parseContain($target, $key, $val, $paths);
+		}
+	}
 }
