@@ -52,7 +52,7 @@ class EagerLoader extends Model {
  *
  * @return array
  */
-	public function attachAssociations(Model $model, $path, array $query) {
+	private function attachAssociations(Model $model, $path, array $query) {
 		$db = $model->getDataSource();
 
 		$query = $this->normalizeQuery($query);
