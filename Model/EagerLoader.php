@@ -39,7 +39,7 @@ class EagerLoader extends Model {
 		}
 
 		$query = $this->attachAssociations($model, $model->alias, $query);
-		$query['fields'] = array_merge(['(' . $this->id . ') AS EagerLoader__id'], $query['fields']);
+		$query['fields'] = array_merge((array)$query['fields'], ['(' . $this->id . ') AS EagerLoader__id']);
 
 		return $query;
 	}
@@ -55,10 +55,7 @@ class EagerLoader extends Model {
 	public function attachAssociations(Model $model, $path, array $query) {
 		$db = $model->getDataSource();
 
-		$query += [
-			'fields' => [],
-			'conditions' => [],
-		];
+		$query = $this->normalizeQuery($query);
 		$query['fields'] = array_merge((array)$query['fields'], $db->fields($model));
 
 		$map =& $this->settings[$this->id]['map'][$path];
@@ -76,21 +73,9 @@ class EagerLoader extends Model {
 					$joinType = ($field['null'] ? 'LEFT' : 'INNER');
 				}
 
-				$conditions = [
-					"$parentAlias.$parentKey" => $db->identifier("$alias.$targetKey")
-				];
-				if (isset($options['conditions'])) {
-					$conditions = array_merge($conditions, (array)$options['conditions']);
-				}
-
-				$query['joins'][] = [
-					'type' => $joinType,
-					'table' => $db->fullTableName($target),
-					'alias' => $alias,
-					'conditions' => $conditions,
-				];
-
-				$query['fields'] = array_merge($query['fields'], $db->fields($target));
+				$options = $this->normalizeQuery($options);
+				$options['conditions'] = array_merge($options['conditions'], ["$parentAlias.$parentKey" => $db->identifier("$alias.$targetKey")]);
+				$query = $this->buildJoinQuery($query, $target, $joinType, $options);
 			}
 		}
 
@@ -122,18 +107,10 @@ class EagerLoader extends Model {
 					$db = $target->getDataSource();
 
 					if ($has && $belong) {
-						$options += [
-							'fields' => [],
-						];
-						$options['fields'] = array_merge((array)$options['fields'], $db->fields($habtm));
-						$options['joins'][] = [
-							'type' => 'INNER',
-							'table' => $db->fullTableName($habtm),
-							'alias' => $habtmAlias,
-							'conditions' => [
-								"$alias.$assocKey" => $db->identifier("$habtmAlias.$habtmKey")
-							]
-						];
+						$options = $this->normalizeQuery($options);
+						$options = $this->buildJoinQuery($options, $habtm, 'INNER', [
+							'conditions' => ["$alias.$assocKey" => $db->identifier("$habtmAlias.$habtmKey")],
+						]);
 					}
 
 					$options = $this->attachAssociations($target, $aliasPath, $options);
@@ -218,6 +195,36 @@ class EagerLoader extends Model {
 		}
 
 		return $result;
+	}
+
+	private function normalizeQuery(array $query) {
+		return $query + [
+			'fields' => [],
+			'conditions' => [],
+		];
+	}
+
+/**
+ * 
+ *
+ * @param $query
+ * @param $target
+ * @param $joinType
+ * @param $options
+ *
+ * @return 
+ */
+	private function buildJoinQuery(array $query, Model $target, $joinType, array $options) {
+		$db = $target->getDataSource();
+
+		$query['fields'] = array_merge((array)$query['fields'], $db->fields($target));
+		$query['joins'][] = [
+			'type' => $joinType,
+			'table' => $db->fullTableName($target),
+			'alias' => $target->alias,
+			'conditions' => $options['conditions'],
+		];
+		return $query;
 	}
 
 /**
