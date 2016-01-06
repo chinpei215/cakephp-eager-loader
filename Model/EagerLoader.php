@@ -48,6 +48,7 @@ class EagerLoader extends Model {
  * 
  *
  * @param $model
+ * @param $path
  * @param $query
  *
  * @return array
@@ -55,11 +56,7 @@ class EagerLoader extends Model {
 	private function attachAssociations(Model $model, $path, array $query) {
 		$db = $model->getDataSource();
 
-		$query = $this->normalizeQuery($query);
-		if (empty($query['fields'])) {
-			$query['fields'] = $db->fields($model);
-		}
-
+		$query = $this->normalizeQuery($model, $query);
 		$map =& $this->settings[$this->id]['map'][$path];
 
 		if ($map) {
@@ -75,7 +72,6 @@ class EagerLoader extends Model {
 					$joinType = ($field['null'] ? 'LEFT' : 'INNER');
 				}
 
-				$options = $this->normalizeQuery($options);
 				$query = $this->buildJoinQuery($query, $target, $joinType, ["$parentAlias.$parentKey" => "$alias.$targetKey"], $options);
 			}
 		}
@@ -199,15 +195,23 @@ class EagerLoader extends Model {
 /**
  * 
  *
- * @param $query
+ * @param Model $model
+ * @param array $query
  *
  * @return 
  */
-	private function normalizeQuery(array $query) {
-		return $query + [
-			'fields' => [],
+	private function normalizeQuery(Model $model, array $query) {
+		$db = $model->getDataSource();
+
+		$query += [
 			'conditions' => [],
 		];
+
+		if (empty($query['fields'])) {
+			$query['fields'] = $db->fields($model);
+		}
+
+		return $query;
 	}
 
 /**
@@ -223,15 +227,14 @@ class EagerLoader extends Model {
 	private function buildJoinQuery(array $query, Model $target, $joinType, array $keys, array $options = []) {
 		$db = $target->getDataSource();
 
-		if (empty($options['fields'])) {
-			$options['fields'] = $db->fields($target);
-		}
+		$options = $this->normalizeQuery($target, $options);
 		$query['fields'] = array_merge((array)$query['fields'], (array)$options['fields']);
 
 		foreach ($keys as $lhs => $rhs) {
 			foreach ([$lhs, $rhs] as $key) {
-				if (!in_array($key, $query['fields'])) {
-					$query['fields'][] = $key;
+				$quotedKey = $db->name($key);
+				if (!in_array($key, $query['fields'], true) && !in_array($quotedKey, $query['fields'], true)) {
+					$query['fields'][] = $quotedKey;
 				}
 			}
 			$options['conditions'][$lhs] = $db->identifier($rhs);
@@ -249,16 +252,14 @@ class EagerLoader extends Model {
 /**
  * 
  *
- * @param $parent
- * @param $alias
- * @param $contain
- * @param $paths
+ * @param Model $parent
+ * @param string $alias
+ * @param array $contain
+ * @param array $paths
  *
  * @return array
  */
-	private function parseContain(Model $parent, $alias, $contain, array $paths) {
-		$contain = (array)$contain;
-
+	private function parseContain(Model $parent, $alias, array $contain, array $paths) {
 		$map =& $this->settings[$this->id]['map'];
 
 		$aliasPath = $paths['aliasPath'] . '.' . $alias;
