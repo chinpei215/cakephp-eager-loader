@@ -56,7 +56,9 @@ class EagerLoader extends Model {
 		$db = $model->getDataSource();
 
 		$query = $this->normalizeQuery($query);
-		$query['fields'] = array_merge((array)$query['fields'], $db->fields($model));
+		if (empty($query['fields'])) {
+			$query['fields'] = $db->fields($model);
+		}
 
 		$map =& $this->settings[$this->id]['map'][$path];
 
@@ -74,8 +76,7 @@ class EagerLoader extends Model {
 				}
 
 				$options = $this->normalizeQuery($options);
-				$options['conditions'] = array_merge($options['conditions'], ["$parentAlias.$parentKey" => $db->identifier("$alias.$targetKey")]);
-				$query = $this->buildJoinQuery($query, $target, $joinType, $options);
+				$query = $this->buildJoinQuery($query, $target, $joinType, ["$parentAlias.$parentKey" => "$alias.$targetKey"], $options);
 			}
 		}
 
@@ -106,14 +107,12 @@ class EagerLoader extends Model {
 				if ($external) {
 					$db = $target->getDataSource();
 
+					$options = $this->attachAssociations($target, $aliasPath, $options);
 					if ($has && $belong) {
-						$options = $this->normalizeQuery($options);
 						$options = $this->buildJoinQuery($options, $habtm, 'INNER', [
-							'conditions' => ["$alias.$assocKey" => $db->identifier("$habtmAlias.$habtmKey")],
+							"$alias.$assocKey" => "$habtmAlias.$habtmKey",
 						]);
 					}
-
-					$options = $this->attachAssociations($target, $aliasPath, $options);
 
 					$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
 					$ids = array_unique($ids);
@@ -197,6 +196,13 @@ class EagerLoader extends Model {
 		return $result;
 	}
 
+/**
+ * 
+ *
+ * @param $query
+ *
+ * @return 
+ */
 	private function normalizeQuery(array $query) {
 		return $query + [
 			'fields' => [],
@@ -214,10 +220,23 @@ class EagerLoader extends Model {
  *
  * @return 
  */
-	private function buildJoinQuery(array $query, Model $target, $joinType, array $options) {
+	private function buildJoinQuery(array $query, Model $target, $joinType, array $keys, array $options = []) {
 		$db = $target->getDataSource();
 
-		$query['fields'] = array_merge((array)$query['fields'], $db->fields($target));
+		if (empty($options['fields'])) {
+			$options['fields'] = $db->fields($target);
+		}
+		$query['fields'] = array_merge((array)$query['fields'], (array)$options['fields']);
+
+		foreach ($keys as $lhs => $rhs) {
+			foreach ([$lhs, $rhs] as $key) {
+				if (!in_array($key, $query['fields'])) {
+					$query['fields'][] = $key;
+				}
+			}
+			$options['conditions'][$lhs] = $db->identifier($rhs);
+		}
+
 		$query['joins'][] = [
 			'type' => $joinType,
 			'table' => $db->fullTableName($target),
@@ -255,6 +274,7 @@ class EagerLoader extends Model {
 		$target = $parent->$alias;
 		$type = $types[$alias];
 		$relation = $parent->{$type}[$alias];
+		$options = $contain['options'];
 
 		$has = (stripos($type, 'has') !== false);
 		$many = (stripos($type, 'many') !== false);
@@ -276,8 +296,6 @@ class EagerLoader extends Model {
 			$alias = $relation['with'];
 			$target = $parent->$alias;
 		}
-
-		$options = $contain['options'];
 
 		$meta = compact(
 			'parent', 'target',
