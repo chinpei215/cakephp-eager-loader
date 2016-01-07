@@ -57,10 +57,10 @@ class EagerLoader extends Model {
 		$db = $model->getDataSource();
 
 		$query = $this->normalizeQuery($model, $query);
-		$map =& $this->settings[$this->id]['map'][$path];
+		$metas =& $this->settings[$this->id][$path];
 
-		if ($map) {
-			foreach ($map as $meta) {
+		if ($metas) {
+			foreach ($metas as $meta) {
 				extract($meta);
 				if ($external) {
 					continue;
@@ -89,13 +89,13 @@ class EagerLoader extends Model {
  *
  * @return array
  */
-	public function loadExternal($path, array $results) {
-		$map =& $this->settings[$this->id]['map'][$path];
+	public function loadExternal($path, array $results, $primary = true) {
+		$metas =& $this->settings[$this->id][$path];
 
-		if ($map) {
-			$map = Hash::sort($map, '{s}.propertyPath', 'desc');
+		if ($metas) {
+			$metas = Hash::sort($metas, '{s}.propertyPath', 'desc');
 
-			foreach ($map as $meta) {
+			foreach ($metas as $meta) {
 				extract($meta);
 
 				$assocResults = [];
@@ -129,7 +129,7 @@ class EagerLoader extends Model {
 					}
 				}
 
-				$assocResults = $this->loadExternal($aliasPath, $assocResults);
+				$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
 
 				foreach ($results as &$result) {
 					$assoc = [];
@@ -153,6 +153,10 @@ class EagerLoader extends Model {
 				unset($result);
 			}
 		}
+
+		if ($primary) {
+			unset($this->settings[$this->id]);
+		}
 		
 		return $results;
 	}
@@ -166,8 +170,8 @@ class EagerLoader extends Model {
  */
 	private function reformatContain($contain) {
 		$result = [
-			'contain' => [],
 			'options' => [],
+			'contain' => [],
 		];
 
 		$contain = (array)$contain;
@@ -260,7 +264,7 @@ class EagerLoader extends Model {
  * @return array
  */
 	private function parseContain(Model $parent, $alias, array $contain, array $paths) {
-		$map =& $this->settings[$this->id]['map'];
+		$map =& $this->settings[$this->id];
 
 		$aliasPath = $paths['aliasPath'] . '.' . $alias;
 		$propertyPath = ($paths['propertyPath'] ? $paths['propertyPath'] . '.' : '') . $alias;
@@ -324,5 +328,7 @@ class EagerLoader extends Model {
 		foreach ($contain['contain'] as $key => $val) {
 			$this->parseContain($target, $key, $val, $paths);
 		}
+
+		return $map;
 	}
 }

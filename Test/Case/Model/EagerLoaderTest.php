@@ -6,6 +6,13 @@ App::uses('EagerLoader', 'EagerLoadable.Model');
 class EagerLoaderTest extends CakeTestCase {
 
 /**
+ * autoFixtures property
+ *
+ * @var bool
+ */
+	public $autoFixtures = false;
+
+/**
  * Fixtures
  *
  * @var array
@@ -34,6 +41,7 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
+ * Tests reformatContain method
  * 
  *
  * @return void
@@ -48,7 +56,7 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * 
+ * Data provider for testReformatContain
  *
  * @return array
  */
@@ -57,24 +65,24 @@ class EagerLoaderTest extends CakeTestCase {
 			array(
 				'User',
 				array(
-					'contain' => array(
-						'User' => array('contain' => array(), 'options' => array()),
-					),
 					'options' => array(),
+					'contain' => array(
+						'User' => array('options' => array(), 'contain' => array()),
+					),
 				),
 			),
 			array(
 				'User.Profile',
 				array(
+					'options' => array(),
 					'contain' => array(
 						'User' => array(
-							'contain' => array(
-								'Profile' => array('contain' => array(), 'options' => array()),
-							),
 							'options' => array(),
+							'contain' => array(
+								'Profile' => array('options' => array(), 'contain' => array()),
+							),
 						),
 					),
-					'options' => array(),
 				),
 			),
 			array(
@@ -87,19 +95,19 @@ class EagerLoaderTest extends CakeTestCase {
 					),
 				),
 				array(
+					'options' => array(),
 					'contain' => array(
 						'Comment' => array(
-							'contain' => array(
-								'User' => array('contain' => array(), 'options' => array()),
-							),
 							'options' => array(
 								'limit' => 3,
 								'order' => array('id' => 'desc'),
 								'conditions' => array('published' => 'Y'),
 							),
+							'contain' => array(
+								'User' => array('options' => array(), 'contain' => array()),
+							),
 						),
 					),
-					'options' => array(),
 				),
 			),
 
@@ -110,33 +118,33 @@ class EagerLoaderTest extends CakeTestCase {
 					'Comment.User.Profile',
 				),
 				array(
+					'options' => array(),
 					'contain' => array(
 						'User' => array(
 							'contain' => array(
-								'Profile' => array('contain' => array(), 'options' => array('fields' => array('address'))),
+								'Profile' => array('options' => array('fields' => array('address')), 'contain' => array()),
 							),
 							'options' => array('fields' => array('name')),
 						),
 						'Comment' => array(
+							'options' => array(),
 							'contain' => array(
 								'User' => array(
-									'contain' => array(
-										'Profile' => array('contain' => array(), 'options' => array()),
-									),
 									'options' => array(),
+									'contain' => array(
+										'Profile' => array('options' => array(), 'contain' => array()),
+									),
 								),
 							), 
-							'options' => array(),
 						),
 					),
-					'options' => array(),
 				),
 			),
 		);
 	}
 
 /**
- * 
+ * Tests buildJoinQuery method
  *
  * @return void
  */
@@ -152,7 +160,12 @@ class EagerLoaderTest extends CakeTestCase {
 			array('fields' => array()),
 			$User, 
 			'INNER',
-			array('Article.user_id' => 'User.id')
+			array('Article.user_id' => 'User.id'),
+			array(
+				'conditions' => array(
+					'User.created >=' => '2015-01-01',
+				)
+			)
 		));
 
 		$expected = array(
@@ -171,6 +184,7 @@ class EagerLoaderTest extends CakeTestCase {
 					'alias' => 'User',
 					'conditions' => array(
 						'Article.user_id' => (object)array('type' => 'identifier', 'value' => 'User.id'),
+						'User.created >=' => '2015-01-01',
 					),
 				),
 			)
@@ -179,4 +193,176 @@ class EagerLoaderTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 	}
 
+/**
+ * Tests perseContain method 
+ *
+ * @return void
+ *
+ * @dataProvider dataProviderForTestParseContain
+ */
+	public function testParseContain($model, $alias, $contain, $expected) {
+		$model = ClassRegistry::init($model);
+
+		$method = new ReflectionMethod('EagerLoader', 'parseContain');
+		$method->setAccessible(true);
+
+		$result = $method->invokeArgs($this->EagerLoader, array(
+			$model,
+			$alias,
+			$contain,
+			array(
+				'root' => $model->alias,
+				'aliasPath' => $model->alias,
+				'propertyPath' => '',
+			)
+		));
+
+		// Remove instances
+		$result = Hash::remove($result, '{s}.{s}.target');
+		$result = Hash::remove($result, '{s}.{s}.parent');
+		$result = Hash::remove($result, '{s}.{s}.habtm');
+
+		$this->assertEquals($expected, $result);
+	}
+
+	public function dataProviderForTestParseContain() {
+		return array( 
+			array(
+				'Comment',
+				'Article',
+				array(
+					'options' => array(),
+					'contain' => array(
+						'User' => array(
+							'options' => array(),
+							'contain' => array(),
+						),
+					),
+				),
+				array(
+					'Comment' => array(
+						'Article' => array(
+							'parentAlias' => 'Comment',
+							'parentKey' => 'article_id',
+							'alias' => 'Article',
+							'targetKey' => 'id',
+							'aliasPath' => 'Comment.Article',
+							'propertyPath' => 'Article',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => false,
+						),
+						'User' => array(
+							'parentAlias' => 'Article',
+							'parentKey' => 'user_id',
+							'alias' => 'User',
+							'targetKey' => 'id',
+							'aliasPath' => 'Comment.Article.User',
+							'propertyPath' => 'Article.User',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => false,
+						),
+					),
+				),
+			),
+			array(
+				'User',
+				'Article',
+				array(
+					'options' => array(),
+					'contain' => array(
+						'Comment' => array(
+							'options' => array('limit' => 3),
+							'contain' => array(
+								'User' => array('options' => array(), 'contain' => array()),
+								'Attachment' => array('options' => array(), 'contain' => array()),
+							),
+						),
+						'Tag' => array('options' => array(), 'contain' => array())
+					),
+				),
+				array(
+					'User' => array(
+						'Article' => array(
+							'parentAlias' => 'User',
+							'parentKey' => 'id',
+							'alias' => 'Article',
+							'targetKey' => 'user_id',
+							'aliasPath' => 'User.Article',
+							'propertyPath' => 'Article',
+							'options' => array(),
+							'has' => true,
+							'belong' => false,
+							'many' => true,
+							'external' => true,
+						),
+					),
+					'User.Article' => array(
+						'Comment' => array(
+							'parentAlias' => 'Article',
+							'parentKey' => 'id',
+							'alias' => 'Comment',
+							'targetKey' => 'article_id',
+							'aliasPath' => 'User.Article.Comment',
+							'propertyPath' => 'Article.Comment',
+							'options' => array('limit' => 3),
+							'has' => true,
+							'belong' => false,
+							'many' => true,
+							'external' => true,
+						),
+						'ArticlesTag' => array(
+							'parentAlias' => 'Article',
+							'parentKey' => 'id',
+							'alias' => 'ArticlesTag',
+							'targetKey' => 'article_id',
+							'aliasPath' => 'User.Article.Tag',
+							'propertyPath' => 'Article.Tag',
+							'options' => array(),
+							'has' => true,
+							'belong' => true,
+							'many' => true,
+							'habtmAlias' => 'Tag',
+							'habtmKey' => 'id',
+							'assocKey' => 'tag_id',
+							'external' => true,
+						),
+					),
+					'User.Article.Comment' => array(
+						'User' => array(
+							'parentAlias' => 'Comment',
+							'parentKey' => 'user_id',
+							'alias' => 'User',
+							'targetKey' => 'id',
+							'aliasPath' => 'User.Article.Comment.User',
+							'propertyPath' => 'Comment.User',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => false,
+						),
+						'Attachment' => array(
+							'parentAlias' => 'Comment',
+							'parentKey' => 'id',
+							'alias' => 'Attachment',
+							'targetKey' => 'comment_id',
+							'aliasPath' => 'User.Article.Comment.Attachment',
+							'propertyPath' => 'Comment.Attachment',
+							'options' => array(),
+							'has' => true,
+							'belong' => false,
+							'many' => false,
+							'external' => false,
+						),
+					),
+				),
+			),
+		);
+	}
 }
