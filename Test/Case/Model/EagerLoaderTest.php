@@ -19,6 +19,7 @@ class EagerLoaderTest extends CakeTestCase {
  */
 	public $fixtures = array(
 		'core.user',
+		'core.articles_tag',
 	);
 
 /**
@@ -63,6 +64,7 @@ class EagerLoaderTest extends CakeTestCase {
 	public function dataProviderForTestReformatContain() {
 		return array(
 			array(
+				// {{{ #0
 				'User',
 				array(
 					'options' => array(),
@@ -70,8 +72,10 @@ class EagerLoaderTest extends CakeTestCase {
 						'User' => array('options' => array(), 'contain' => array()),
 					),
 				),
+				// }}}
 			),
 			array(
+				// {{{ #1
 				'User.Profile',
 				array(
 					'options' => array(),
@@ -84,8 +88,10 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
+				// }}}
 			),
 			array(
+				// {{{ #2
 				array(
 					'Comment' => array(
 						'User' => array(),
@@ -109,9 +115,10 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
+				// }}}
 			),
-
 			array(
+				// {{{ #3
 				array(
 					'User' => array('fields' => array('name')),
 					'User.Profile' => array('fields' => array('address')),
@@ -139,6 +146,7 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
+				// }}}
 			),
 		);
 	}
@@ -157,8 +165,8 @@ class EagerLoaderTest extends CakeTestCase {
 		$method = new ReflectionMethod('EagerLoader', 'buildJoinQuery');
 		$method->setAccessible(true);
 		$result = $method->invokeArgs($this->EagerLoader, array(
-			array('fields' => array()),
 			$User, 
+			array('fields' => array()),
 			'INNER',
 			array('Article.user_id' => 'User.id'),
 			array(
@@ -201,6 +209,8 @@ class EagerLoaderTest extends CakeTestCase {
  * @dataProvider dataProviderForTestParseContain
  */
 	public function testParseContain($model, $alias, $contain, $expected) {
+		$this->loadFixtures('ArticlesTag');
+
 		$model = ClassRegistry::init($model);
 
 		$method = new ReflectionMethod('EagerLoader', 'parseContain');
@@ -228,6 +238,7 @@ class EagerLoaderTest extends CakeTestCase {
 	public function dataProviderForTestParseContain() {
 		return array( 
 			array(
+				// {{{ #0
 				'Comment',
 				'Article',
 				array(
@@ -267,8 +278,10 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
+				// }}}
 			),
 			array(
+				// {{{ #1
 				'User',
 				'Article',
 				array(
@@ -355,6 +368,7 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
+				// }}}
 			),
 		);
 	}

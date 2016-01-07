@@ -39,7 +39,7 @@ class EagerLoader extends Model {
 		}
 
 		$query = $this->attachAssociations($model, $model->alias, $query);
-		$query['fields'] = array_merge((array)$query['fields'], ['(' . $this->id . ') AS EagerLoader__id']);
+		$query['fields'] = array_merge($query['fields'], ['(' . $this->id . ') AS EagerLoader__id']);
 
 		return $query;
 	}
@@ -63,16 +63,16 @@ class EagerLoader extends Model {
 			foreach ($metas as $alias => $meta) {
 				extract($meta);
 				if ($external) {
-					continue;
-				}
+					$query = $this->addKeyField($parent, $query, "$parentAlias.$parentKey");
+				} else {
+					$joinType = 'LEFT';
+					if ($belong) {
+						$field = $parent->schema($parentKey);
+						$joinType = ($field['null'] ? 'LEFT' : 'INNER');
+					}
 
-				$joinType = 'LEFT';
-				if ($belong) {
-					$field = $parent->schema($parentKey);
-					$joinType = ($field['null'] ? 'LEFT' : 'INNER');
+					$query = $this->buildJoinQuery($target, $query, $joinType, ["$parentAlias.$parentKey" => "$alias.$targetKey"], $options);
 				}
-
-				$query = $this->buildJoinQuery($query, $target, $joinType, ["$parentAlias.$parentKey" => "$alias.$targetKey"], $options);
 			}
 		}
 
@@ -104,10 +104,11 @@ class EagerLoader extends Model {
 					$db = $target->getDataSource();
 
 					$options = $this->attachAssociations($target, $aliasPath, $options);
+					$options = $this->addKeyField($target, $options, "$alias.$targetKey");
 					if ($has && $belong) {
-						$options = $this->buildJoinQuery($options, $habtm, 'INNER', [
+						$options = $this->buildJoinQuery($habtm, $options, 'INNER', [
 							"$alias.$assocKey" => "$habtmAlias.$habtmKey",
-						]);
+						], $options);
 					}
 
 					$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
@@ -209,11 +210,15 @@ class EagerLoader extends Model {
 
 		$query += [
 			'conditions' => [],
+			'fields' => [],
 		];
 
-		if (empty($query['fields'])) {
+		if (!$query['fields']) {
 			$query['fields'] = $db->fields($model);
 		}
+
+		$query['conditions'] = (array)$query['conditions'];
+		$query['fields'] = (array)$query['fields'];
 
 		return $query;
 	}
@@ -228,19 +233,15 @@ class EagerLoader extends Model {
  *
  * @return 
  */
-	private function buildJoinQuery(array $query, Model $target, $joinType, array $keys, array $options = []) {
+	private function buildJoinQuery(Model $target, array $query, $joinType, array $keys, array $options) {
 		$db = $target->getDataSource();
 
 		$options = $this->normalizeQuery($target, $options);
-		$query['fields'] = array_merge((array)$query['fields'], (array)$options['fields']);
+		$query['fields'] = array_merge($query['fields'], $options['fields']);
 
 		foreach ($keys as $lhs => $rhs) {
-			foreach ([$lhs, $rhs] as $key) {
-				$quotedKey = $db->name($key);
-				if (!in_array($key, $query['fields'], true) && !in_array($quotedKey, $query['fields'], true)) {
-					$query['fields'][] = $quotedKey;
-				}
-			}
+			$query = $this->addKeyField($target, $query, $lhs);
+			$query = $this->addKeyField($target, $query, $rhs);
 			$options['conditions'][$lhs] = $db->identifier($rhs);
 		}
 
@@ -250,6 +251,24 @@ class EagerLoader extends Model {
 			'alias' => $target->alias,
 			'conditions' => $options['conditions'],
 		];
+		return $query;
+	}
+
+/**
+ * 
+ *
+ * @param $query
+ * @param $key
+ *
+ * @return 
+ */
+	private function addKeyField(Model $model, $query, $key) {
+		$db = $model->getDataSource();
+
+		$quotedKey = $db->name($key);
+		if (!in_array($key, $query['fields'], true) && !in_array($quotedKey, $query['fields'], true)) {
+			$query['fields'][] = $quotedKey;
+		}
 		return $query;
 	}
 
