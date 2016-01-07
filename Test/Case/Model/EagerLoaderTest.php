@@ -244,7 +244,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'Article' => array(
 							'parentAlias' => 'Comment',
 							'parentKey' => 'article_id',
-							'alias' => 'Article',
 							'targetKey' => 'id',
 							'aliasPath' => 'Comment.Article',
 							'propertyPath' => 'Article',
@@ -257,7 +256,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'User' => array(
 							'parentAlias' => 'Article',
 							'parentKey' => 'user_id',
-							'alias' => 'User',
 							'targetKey' => 'id',
 							'aliasPath' => 'Comment.Article.User',
 							'propertyPath' => 'Article.User',
@@ -291,7 +289,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'Article' => array(
 							'parentAlias' => 'User',
 							'parentKey' => 'id',
-							'alias' => 'Article',
 							'targetKey' => 'user_id',
 							'aliasPath' => 'User.Article',
 							'propertyPath' => 'Article',
@@ -306,7 +303,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'Comment' => array(
 							'parentAlias' => 'Article',
 							'parentKey' => 'id',
-							'alias' => 'Comment',
 							'targetKey' => 'article_id',
 							'aliasPath' => 'User.Article.Comment',
 							'propertyPath' => 'Article.Comment',
@@ -319,7 +315,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'ArticlesTag' => array(
 							'parentAlias' => 'Article',
 							'parentKey' => 'id',
-							'alias' => 'ArticlesTag',
 							'targetKey' => 'article_id',
 							'aliasPath' => 'User.Article.Tag',
 							'propertyPath' => 'Article.Tag',
@@ -337,7 +332,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'User' => array(
 							'parentAlias' => 'Comment',
 							'parentKey' => 'user_id',
-							'alias' => 'User',
 							'targetKey' => 'id',
 							'aliasPath' => 'User.Article.Comment.User',
 							'propertyPath' => 'Comment.User',
@@ -350,7 +344,6 @@ class EagerLoaderTest extends CakeTestCase {
 						'Attachment' => array(
 							'parentAlias' => 'Comment',
 							'parentKey' => 'id',
-							'alias' => 'Attachment',
 							'targetKey' => 'comment_id',
 							'aliasPath' => 'User.Article.Comment.Attachment',
 							'propertyPath' => 'Comment.Attachment',

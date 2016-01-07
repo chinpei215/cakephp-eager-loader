@@ -60,7 +60,7 @@ class EagerLoader extends Model {
 		$metas =& $this->settings[$this->id][$path];
 
 		if ($metas) {
-			foreach ($metas as $meta) {
+			foreach ($metas as $alias => $meta) {
 				extract($meta);
 				if ($external) {
 					continue;
@@ -95,7 +95,7 @@ class EagerLoader extends Model {
 		if ($metas) {
 			$metas = Hash::sort($metas, '{s}.propertyPath', 'desc');
 
-			foreach ($metas as $meta) {
+			foreach ($metas as $alias => $meta) {
 				extract($meta);
 
 				$assocResults = [];
@@ -302,27 +302,26 @@ class EagerLoader extends Model {
 			$target = $parent->$alias;
 		}
 
-		$meta = compact(
-			'parent', 'target',
-			'parentAlias', 'parentKey',
-			'alias', 'targetKey',
-			'aliasPath', 'propertyPath',
-			'options', 'has', 'many', 'belong',
-			'habtm', 'habtmAlias', 'habtmKey', 'assocKey'
-		);
-
-		$tmp = explode($paths['aliasPath'], '.');
+		$tmp = explode($paths['root'], '.');
 		$rootAlias = end($tmp);
 		if ($many || $alias === $rootAlias || isset($map[$paths['root']][$alias])) {
+			$external = true;
 			$paths['root'] = $aliasPath;
 			$paths['propertyPath'] = $alias;
-			$meta['external'] = true;
-			$map[$paths['aliasPath']][$alias] = $meta;
+			$path = $paths['aliasPath'];
 		} else {
+			$external = false;
 			$paths['propertyPath'] = $propertyPath;
-			$meta['external'] = false;
-			$map[$paths['root']][$alias] = $meta;
+			$path = $paths['root'];
 		}
+
+		$map[$path][$alias] = compact(
+			'parent', 'target',
+			'parentAlias', 'parentKey',
+			'targetKey', 'aliasPath', 'propertyPath',
+			'options', 'has', 'many', 'belong', 'external',
+			'habtm', 'habtmAlias', 'habtmKey', 'assocKey'
+		);
 
 		$paths['aliasPath'] = $aliasPath;
 		foreach ($contain['contain'] as $key => $val) {
