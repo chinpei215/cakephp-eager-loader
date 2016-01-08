@@ -420,4 +420,92 @@ class EagerLoaderTest extends CakeTestCase {
 			),
 		);
 	}
+
+/**
+ * 
+ *
+ * @return void
+ *
+ * @expectedException InvalidArgumentException
+ * @expectedExceptionMessage Model "User" is not associated with model "Something"
+ */
+	public function testParseContainTriggersWarning() {
+		$User = ClassRegistry::init('User');
+
+		$method = new ReflectionMethod('EagerLoader', 'parseContain');
+		$method->setAccessible(true);
+		$method->invokeArgs($this->EagerLoader, array(
+			$User,
+			'Something',
+			array('options' => array(), 'contain' => array()),
+			array(
+				'root' => 'User',
+				'aliasPath' => 'User',
+				'propertyPath' => '',
+			)
+		));
+	}
+
+/**
+ * 
+ *
+ *
+ * @return void
+ *
+ * @dataProvider dataProviderForTestNormalizeQuery
+ */
+	public function testNormalizeQuery($query, $expected) {
+		$this->loadFixtures('User');
+
+		$User = ClassRegistry::init('User');
+		$db = $User->getDataSource();
+
+		$method = new ReflectionMethod('EagerLoader', 'normalizeQuery');
+		$method->setAccessible(true);
+		$result = $method->invokeArgs($this->EagerLoader, array(
+			$User,
+			$query,
+		));
+
+		$expected['fields'] = array_map(array($db, 'name'), $expected['fields']);
+
+		$this->assertEquals($expected, $result);
+	}
+
+	/**
+	 * Data provider for testNormalizeQuery
+	 *
+	 * @return array
+	 */
+	public function dataProviderForTestNormalizeQuery() {
+		return array(
+			array(
+				// {{{ #0
+				array(),
+				array(
+					'fields' => array(
+						'User.id',
+						'User.user',
+						'User.password',
+						'User.created',
+						'User.updated',
+					),
+					'conditions' => array(),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #1
+				array(
+					'fields' => 'User.id',
+					'conditions' => '1 = 1',
+				),
+				array(
+					'fields' => array('User.id'),
+					'conditions' => array('1 = 1'),
+				),
+				// }}}
+			),
+		);
+	}
 }

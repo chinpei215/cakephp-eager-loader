@@ -500,4 +500,18 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			),
 		));
 	}
+
+/**
+ *
+ */
+	public function testAfterFindNoResults() {
+		$User = ClassRegistry::init('User');
+
+		$user = $User->find('all', array(
+			'contain' => 'Article',
+			'conditions' => '1 != 1',
+		));
+
+		$this->assertSame(array(), $user);
+	}
 }

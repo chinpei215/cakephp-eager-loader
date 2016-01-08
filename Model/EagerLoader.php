@@ -220,16 +220,17 @@ class EagerLoader extends Model {
 		$db = $model->getDataSource();
 
 		$query += [
-			'conditions' => [],
 			'fields' => [],
+			'conditions' => []
 		];
 
 		if (!$query['fields']) {
 			$query['fields'] = $db->fields($model);
+		} else {
+			$query['fields'] = array_map([$db, 'name'], (array)$query['fields']);
 		}
 
 		$query['conditions'] = (array)$query['conditions'];
-		$query['fields'] = (array)$query['fields'];
 
 		return $query;
 	}
@@ -301,8 +302,7 @@ class EagerLoader extends Model {
 
 		$types = $parent->getAssociated();
 		if (!isset($types[$alias])) {
-			trigger_error(sprintf('Model "%s" is not associated with model "%s"', $parent->alias, $alias), E_USER_WARNING);
-			return;
+			throw new InvalidArgumentException(sprintf('Model "%s" is not associated with model "%s"', $parent->alias, $alias), E_USER_WARNING);
 		}
 
 		$parentAlias = $parent->alias;
