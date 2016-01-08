@@ -19,6 +19,10 @@ class EagerLoaderTest extends CakeTestCase {
  */
 	public $fixtures = array(
 		'core.user',
+		'core.article',
+		'core.comment',
+		'core.attachment',
+		'core.tag',
 		'core.articles_tag',
 	);
 
@@ -542,5 +546,108 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 		);
+	}
+
+/**
+ * Tests that mergeInternalExternal method
+ *
+ * @return void
+ */
+	public function testMergeInternalExternal() {
+		$this->loadFixtures('Article', 'User');
+
+		$Article = ClassRegistry::init('Article');
+
+		$meta = array(
+			'parent' => $Article,
+			'target' => $Article->User,
+			'parentAlias' => 'Article',
+			'parentKey' => 'user_id',
+			'targetKey' => 'id',
+			'aliasPath' => 'Article.User',
+			'propertyPath' => 'Article.User',
+			'options' => array(
+				'fields' => 'id',
+			),
+			'has' => false,
+			'belong' => true,
+			'many' => false,
+			'external' => false,
+		);
+
+		$results = array(
+			array(
+				'Article' => array(
+					'id' => '1',
+					'user_id' => '1',
+				),
+				'User' => array(
+					'id' => '1',
+					'counter' => '1',
+				),
+			),
+			array(
+				'Article' => array(
+					'id' => '3',
+					'user_id' => '1',
+				),
+				'User' => array(
+					'id' => '1',
+					'counter' => '2',
+				),
+			)
+		);
+
+		$EagerLoader = $this->getMock('EagerLoader');
+		$EagerLoader->expects($this->once())
+			->method('loadExternal')
+			->with(
+				'Article.User', 
+				array(
+					array(
+						'User' => array(
+							'id' => '1',
+							'counter' => '1',
+						),
+					),
+					array(
+						'User' => array(
+							'id' => '1',
+							'counter' => '2',
+						),
+					),
+				),
+				false
+			)
+			->will($this->returnArgument(1));
+
+		$method = new ReflectionMethod('EagerLoader', 'mergeInternalExternal');
+		$method->setAccessible(true);
+		$merged = $method->invokeArgs($EagerLoader, array($results, 'User', $meta));
+
+		$expected = array(
+			array(
+				'Article' => array(
+					'id' => '1',
+					'user_id' => '1',
+					'User' => array(
+						'id' => '1',
+						'counter' => '1',
+					),
+				),
+			),
+			array(
+				'Article' => array(
+					'id' => '3',
+					'user_id' => '1',
+					'User' => array(
+						'id' => '1',
+						'counter' => '2',
+					),
+				),
+			)
+		);
+
+		$this->assertEquals($expected, $merged);
 	}
 }

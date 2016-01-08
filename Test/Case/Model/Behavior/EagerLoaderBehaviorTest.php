@@ -4,6 +4,13 @@ require_once App::pluginPath('EagerLoader') . 'Test' . DS . 'bootstrap.php';
 class EagerLoaderBehaviorTest extends CakeTestCase {
 
 /**
+ * autoFixtures property
+ *
+ * @var bool
+ */
+	public $autoFixtures = false;
+
+/**
  * Fixtures
  *
  * @var array
@@ -15,6 +22,8 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		'core.attachment',
 		'core.tag',
 		'core.articles_tag',
+		'core.something',
+		'core.join_thing',
 	);
 
 /**
@@ -22,13 +31,16 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
  *
  * @param string $model Name of the model
  * @param array $options Options for find method
+ * @param array $fixtures Fixtures to be used
  * @param int $expectedQueryCount Expected query count
  * @param array $expectedResults Expected results
  * @return void
  *
  * @dataProvider dataProviderForTestEagerLoad
  */
-	public function testEagerLoad($model, $options, $expectedQueryCount, $expectedResults) {
+	public function testEagerLoad($model, $options, $fixtures, $expectedQueryCount, $expectedResults) {
+		call_user_func_array(array($this, 'loadFixtures'), $fixtures);
+
 		$model = ClassRegistry::init($model);
 		$db = $model->getDataSource();
 
@@ -57,6 +69,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				array(
 					'contain' => array('User', 'Comment'),
 				),
+				array('Article', 'User', 'Comment'),
 				2,
 				array(
 					array(
@@ -132,6 +145,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 						'Comment.Article.User' => array('fields' => 'User.id'),
 					),
 				),
+				array('Attachment', 'Comment', 'Article', 'User'),
 				1,
 				array(
 					array(
@@ -167,6 +181,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 						),
 					),
 				),
+				array('Article', 'Comment', 'User'),
 				2,
 				array(
 					array(
@@ -264,6 +279,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 						),
 					),
 				),
+				array('User', 'Article'),
 				5,
 				array(
 					array(
@@ -323,6 +339,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 						'Article.id' => 1,
 					),
 				),
+				array('Article', 'Tag', 'ArticlesTag'),
 				2,
 				array(
 					array(
@@ -366,6 +383,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 						'User.id' => array('1', '3'),
 					),
 				),
+				array('User', 'Article'),
 				2,
 				array(
 					array(
@@ -398,6 +416,8 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
  * @return void
  */
 	public function testAfterFind() {
+		$this->loadFixtures('Comment', 'Tag', 'ArticlesTag', 'Article', 'User', 'Attachment');
+
 		$Comment = $this->getMockForModel('Comment', array('afterFind'));
 		$Comment->expects($this->once())
 			->method('afterFind')
@@ -548,6 +568,8 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
  * @return void
  */
 	public function testAfterFindNoResults() {
+		$this->loadFixtures('User', 'Article');
+
 		$User = ClassRegistry::init('User');
 
 		$user = $User->find('all', array(

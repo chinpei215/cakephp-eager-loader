@@ -105,72 +105,11 @@ class EagerLoader extends Model {
 
 			foreach ($metas as $alias => $meta) {
 				extract($meta);
-
-				$assocResults = array();
-
-				$assocAlias = $alias;
-				$assocKey = $targetKey;
-
 				if ($external) {
-					$db = $target->getDataSource();
-
-					$options = $this->attachAssociations($target, $aliasPath, $options);
-					if ($has && $belong) {
-						$assocAlias = $habtmAlias;
-						$assocKey = $habtmParentKey;
-
-						$options = $this->buildJoinQuery($habtm, $options, 'INNER', array(
-							"$alias.$targetKey" => "$habtmAlias.$habtmTargetKey",
-						), $options);
-					}
-
-					$options = $this->addField($options, "$assocAlias.$assocKey");
-
-					$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
-					$ids = array_unique($ids);
-
-					if (empty($options['limit'])) {
-						$options = $this->addConditions($options, array("$assocAlias.$assocKey" => $ids));
-						$assocResults = $db->read($target, $options);
-					} else {
-						foreach ($ids as $id) {
-							$eachOptions = $this->addConditions($options, array("$assocAlias.$assocKey" => $id));
-							$assocResults = array_merge($db->read($target, $eachOptions), $assocResults);
-						}
-					}
-
-					// Triggers afterFind for the external primary model.
-					$this->$alias = $target; // Hack for DboSource::_filterResults()
-					$db->dispatchMethod('_filterResultsInclusive', array(&$assocResults, $this, array($alias)));
+					$results = $this->mergeExternalExternal($results, $alias, $meta);
 				} else {
-					foreach ($results as &$result) {
-						$assocResults[] = array( $alias => $result[$alias] );
-						unset($result[$alias]);
-					}
+					$results = $this->mergeInternalExternal($results, $alias, $meta);
 				}
-
-				$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
-
-				foreach ($results as &$result) {
-					$assoc = array();
-
-					foreach ($assocResults as $assocResult) {
-						if ($result[$parentAlias][$parentKey] == $assocResult[$assocAlias][$assocKey]) {
-							if ($has && $belong) {
-								$assoc[] = $assocResult[$alias] + array($assocAlias => $assocResult[$assocAlias]);
-							} else {
-								$assoc[] = $assocResult[$alias];
-							}
-						}
-					}
-
-					if (!$many) {
-						$assoc = $assoc ? current($assoc) : array();
-					}
-
-					$result = Hash::insert($result, $propertyPath, $assoc + (array)Hash::get($result, $propertyPath));
-				}
-				unset($result);
 			}
 		}
 
@@ -179,6 +118,114 @@ class EagerLoader extends Model {
 		}
 
 		return $results;
+	}
+
+/**
+ * Merges results of external associations of an external association
+ *
+ * @param array $results
+ * @param string $alias
+ * @param array $meta
+ * @return array
+ */
+	private function mergeExternalExternal(array $results, $alias, array $meta) {
+		extract($meta);
+
+		$assocAlias = $alias;
+		$assocKey = $targetKey;
+
+		$db = $target->getDataSource();
+
+		$options = $this->attachAssociations($target, $aliasPath, $options);
+		if ($has && $belong) {
+			$assocAlias = $habtmAlias;
+			$assocKey = $habtmParentKey;
+
+			$options = $this->buildJoinQuery($habtm, $options, 'INNER', array(
+				"$alias.$targetKey" => "$habtmAlias.$habtmTargetKey",
+			), $options);
+		}
+
+		$options = $this->addField($options, "$assocAlias.$assocKey");
+
+		$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
+		$ids = array_unique($ids);
+
+		if (empty($options['limit'])) {
+			$options = $this->addConditions($options, array("$assocAlias.$assocKey" => $ids));
+			$assocResults = $db->read($target, $options);
+		} else {
+			$assocResults = array();
+			foreach ($ids as $id) {
+				$eachOptions = $this->addConditions($options, array("$assocAlias.$assocKey" => $id));
+				$assocResults = array_merge($db->read($target, $eachOptions), $assocResults);
+			}
+		}
+
+		// Triggers afterFind for the external primary model.
+		$this->$alias = $target; // Hack for DboSource::_filterResults()
+		$db->dispatchMethod('_filterResultsInclusive', array(&$assocResults, $this, array($alias)));
+
+		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
+
+		foreach ($results as &$result) {
+			$assoc = array();
+			foreach ($assocResults as $assocResult) {
+				if ($result[$parentAlias][$parentKey] == $assocResult[$assocAlias][$assocKey]) {
+					if ($has && $belong) {
+						$assoc[] = $assocResult[$alias] + array($assocAlias => $assocResult[$assocAlias]);
+					} else {
+						$assoc[] = $assocResult[$alias];
+					}
+				}
+			}
+			if (!$many) {
+				$assoc = $assoc ? current($assoc) : array();
+			}
+			$result = $this->mergeAssocResult($result, $assoc, $propertyPath);
+		}
+
+		return $results;
+	}
+
+/**
+ * Merges results of external associations of an internal association
+ *
+ * @param array $results
+ * @param string $alias
+ * @param array $meta
+ * @return array
+ */
+	private function mergeInternalExternal(array $results, $alias, array $meta) {
+		extract($meta);
+
+		foreach ($results as $n => &$result) {
+			$assocResults[$n] = array( $alias => $result[$alias] );
+			unset($result[$alias]);
+		}
+		unset($result);
+
+		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
+
+		foreach ($results as $n => &$result) {
+			$assoc = $assocResults[$n][$alias];
+			$result = $this->mergeAssocResult($result, $assoc, $propertyPath);
+		}
+		unset($result);
+
+		return $results;
+	}
+
+/**
+ * Merges associated result
+ *
+ * @param array $result
+ * @param array $assocResult
+ * @param string $propertyPath
+ * @return 
+ */
+	private function mergeAssocResult($result, $assoc, $propertyPath) {
+		return Hash::insert($result, $propertyPath, $assoc + (array)Hash::get($result, $propertyPath));
 	}
 
 /**
