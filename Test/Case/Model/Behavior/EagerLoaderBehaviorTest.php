@@ -351,6 +351,44 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				),
 				// }}}
 			),
+			array(
+				// {{{ #5
+				'User',
+				array(
+					'fields' => 'User.id',
+					'contain' => array(
+						'Article' => array(
+							'fields' => array('Article.id'),
+							'conditions' => array('Article.user_id' => 3),
+						),
+					),
+					'conditions' => array(
+						'User.id' => array('1', '3'),
+					),
+				),
+				2,
+				array(
+					array(
+						'User' => array(
+							'id' => '1',
+						),
+						'Article' => array(),
+					),
+					array(
+						'User' => array(
+							'id' => '3',
+						),
+						'Article' => array(
+							array(
+								'id' => '2',
+								'user_id' => '3',
+							),
+						),
+					),
+				),
+				// }}}
+			),
+
 		);
 	}
 

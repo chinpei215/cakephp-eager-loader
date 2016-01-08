@@ -172,7 +172,7 @@ class EagerLoaderTest extends CakeTestCase {
 			array('Article.user_id' => 'User.id'),
 			array(
 				'conditions' => array(
-					'User.created >=' => '2015-01-01',
+					'Article.user_id' => array(1, 2, 3),
 				)
 			)
 		));
@@ -192,8 +192,10 @@ class EagerLoaderTest extends CakeTestCase {
 					'table' => $db->fullTableName($User),
 					'alias' => 'User',
 					'conditions' => array(
-						'Article.user_id' => (object)array('type' => 'identifier', 'value' => 'User.id'),
-						'User.created >=' => '2015-01-01',
+						'AND' => array(
+							array('Article.user_id' => array(1, 2, 3)),
+							array('Article.user_id' => (object)array('type' => 'identifier', 'value' => 'User.id')),
+						),
 					),
 				),
 			)
