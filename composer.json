@@ -1,0 +1,14 @@
+{
+	"name": "chinpei215/cakephp-eager-loader",
+	"description": "CakePHP 2.x plugin to make it possible to eager load",
+	"type": "cakephp-plugin",
+	"keywords": ["cakephp", "eager", "load"],
+	"homepage": "https://github.com/chinpei215/cakephp-eager-loader",
+	"license": "MIT",
+	"require": {
+		"composer/installers": "*"
+	},
+	"extra": {
+		"installer-name": "EagerLoader"
+	}
+}
