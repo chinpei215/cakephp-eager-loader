@@ -178,14 +178,14 @@ class EagerLoaderTest extends CakeTestCase {
 		));
 
 		$expected = array(
-			'fields' => array_map(array($db, 'name'), array(
+			'fields' => array(
 				'User.id',
 				'User.user',
 				'User.password',
 				'User.created',
 				'User.updated',
 				'Article.user_id',
-			)),
+			),
 			'joins' => array(
 				array(
 					'type' => 'INNER',
@@ -470,7 +470,6 @@ class EagerLoaderTest extends CakeTestCase {
 		$this->loadFixtures('User');
 
 		$User = ClassRegistry::init('User');
-		$db = $User->getDataSource();
 
 		$method = new ReflectionMethod('EagerLoader', 'normalizeQuery');
 		$method->setAccessible(true);
@@ -478,8 +477,6 @@ class EagerLoaderTest extends CakeTestCase {
 			$User,
 			$query,
 		));
-
-		$expected['fields'] = array_map(array($db, 'name'), $expected['fields']);
 
 		$this->assertEquals($expected, $result);
 	}
@@ -515,6 +512,30 @@ class EagerLoaderTest extends CakeTestCase {
 				array(
 					'fields' => array('User.id'),
 					'conditions' => array('1 = 1'),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #2
+				array(
+					'fields' => array(
+						'User.id',
+						'user',
+						'password',
+					),
+					'conditions' => array(
+						'user' => 'larry',
+					),
+				),
+				array(
+					'fields' => array(
+						'User.id',
+						'User.user',
+						'User.password',
+					),
+					'conditions' => array(
+						'User.user' => 'larry',
+					),
 				),
 				// }}}
 			),

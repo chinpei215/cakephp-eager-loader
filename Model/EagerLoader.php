@@ -231,12 +231,24 @@ class EagerLoader extends Model {
 		);
 
 		if (!$query['fields']) {
-			$query['fields'] = $db->fields($model);
-		} else {
-			$query['fields'] = array_map(array($db, 'name'), (array)$query['fields']);
+			$query['fields'] = $db->fields($model, null, array(), false);
 		}
 
+		$query['fields'] = (array)$query['fields'];
+		foreach ($query['fields'] as &$field) {
+			if ($model->hasField($field)) {
+				$field = $model->alias . '.' . $field;
+			}
+		}
+		unset($field);
+
 		$query['conditions'] = (array)$query['conditions'];
+		foreach ($query['conditions'] as $key => $val) {
+			if ($model->hasField($key)) {
+				$query['conditions'][$model->alias . '.' . $key] = $val;
+				unset($query['conditions'][$key]);
+			}
+		}
 
 		return $query;
 	}
@@ -281,11 +293,8 @@ class EagerLoader extends Model {
  * @return Modified query
  */
 	private function addKeyField(Model $model, array $query, $key) { // @codingStandardsIgnoreLine
-		$db = $model->getDataSource();
-
-		$quotedKey = $db->name($key);
-		if (!in_array($key, $query['fields'], true) && !in_array($quotedKey, $query['fields'], true)) {
-			$query['fields'][] = $quotedKey;
+		if (!in_array($key, $query['fields'], true)) {
+			$query['fields'][] = $key;
 		}
 		return $query;
 	}
