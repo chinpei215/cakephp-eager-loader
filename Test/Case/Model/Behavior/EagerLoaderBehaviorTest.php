@@ -373,6 +373,22 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 							'User' => array(
 								'id' => '3',
 							),
+							'Tag' => array(
+								array(
+									'id' => '1',
+									'ArticlesTag' => array(
+										'article_id' => '2',
+										'tag_id' => '1',
+									),
+								),
+								array(
+									'id' => '3',
+									'ArticlesTag' => array(
+										'article_id' => '2',
+										'tag_id' => '3',
+									),
+								),
+							),
 						),
 						'Attachment' => array(
 							'id' => '1',
@@ -383,6 +399,40 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				true
 				//}}}
 			);
+
+		$Tag = $this->getMockForModel('Tag', array('afterFind'));
+		$Tag->expects($this->at(0))
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'Tag' => array(
+							'id' => '1',
+						),
+					),
+				),
+				false
+				// }}}
+			)
+			->will($this->returnArgument(0));
+
+		$Tag->expects($this->at(1))
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'Tag' => array(
+							'id' => '3',
+						),
+					),
+				),
+				false
+				// }}}
+			)
+			->will($this->returnArgument(0));
+
 
 		$Article = $this->getMockForModel('Article', array('afterFind'));
 		$Article->expects($this->once())
@@ -442,6 +492,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			'contain' => array(
 				'Article' => array('fields' => 'Article.id'),
 				'Article.User' => array('fields' => 'User.id'),
+				'Article.Tag' => array('fields' => 'Tag.id'),
 				'Attachment' => array('fields' => 'Attachment.id'),
 			),
 			'conditions' => array(

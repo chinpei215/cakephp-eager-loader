@@ -100,29 +100,40 @@ class EagerLoader extends Model {
 
 				$assocResults = [];
 
+				$assocAlias = $alias;
+				$assocKey = $targetKey;
+
 				if ($external) {
 					$db = $target->getDataSource();
 
 					$options = $this->attachAssociations($target, $aliasPath, $options);
-					$options = $this->addKeyField($target, $options, "$alias.$targetKey");
 					if ($has && $belong) {
+						$assocAlias = $habtmAlias;
+						$assocKey = $habtmParentKey;
+
 						$options = $this->buildJoinQuery($habtm, $options, 'INNER', [
-							"$alias.$assocKey" => "$habtmAlias.$habtmKey",
+							"$alias.$targetKey" => "$habtmAlias.$habtmTargetKey",
 						], $options);
 					}
+
+					$options = $this->addKeyField($target, $options, "$assocAlias.$assocKey");
 
 					$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
 					$ids = array_unique($ids);
 
 					if (empty($options['limit'])) {
-						$options['conditions'] = array_merge($options['conditions'], ["$alias.$targetKey" => $ids]);
+						$options['conditions'] = array_merge($options['conditions'], ["$assocAlias.$assocKey" => $ids]);
 						$assocResults = $db->read($target, $options);
 					} else {
 						foreach ($ids as $id) {
-							$options['conditions']["$alias.$targetKey"] = $id;
+							$options['conditions']["$assocAlias.$assocKey"] = $id;
 							$assocResults = array_merge($db->read($target, $options), $assocResults);
 						}
 					}
+
+					// Triggers afterFind for the external primary model.
+					$this->$alias = $target; // Hack for DboSource::_filterResults()
+					$db->dispatchMethod('_filterResultsInclusive', [&$assocResults, $this, [$alias]]);
 				} else {
 					foreach ($results as &$result) {
 						$assocResults[] = [ $alias => $result[$alias] ];
@@ -136,9 +147,9 @@ class EagerLoader extends Model {
 					$assoc = [];
 
 					foreach ($assocResults as $assocResult) {
-						if ($result[$parentAlias][$parentKey] == $assocResult[$alias][$targetKey]) {
+						if ($result[$parentAlias][$parentKey] == $assocResult[$assocAlias][$assocKey]) {
 							if ($has && $belong) {
-								$assoc[] = $assocResult[$habtmAlias] + [$alias => $assocResult[$alias]];
+								$assoc[] = $assocResult[$alias] + [$assocAlias => $assocResult[$assocAlias]];
 							} else {
 								$assoc[] = $assocResult[$alias];
 							}
@@ -304,21 +315,19 @@ class EagerLoader extends Model {
 		$many = (stripos($type, 'many') !== false);
 		$belong = (stripos($type, 'belong') !== false);
 
-		if ($has) {
+		if ($has && $belong) {
+			$parentKey = $parent->primaryKey;
+			$targetKey = $target->primaryKey;
+			$habtmAlias = $relation['with'];
+			$habtm = $parent->$habtmAlias;
+			$habtmParentKey = $relation['foreignKey'];
+			$habtmTargetKey = $relation['associationForeignKey'];
+		} elseif ($has) {
 			$parentKey = $parent->primaryKey;
 			$targetKey = $relation['foreignKey'];
 		} else {
 			$parentKey = $relation['foreignKey'];
 			$targetKey = $target->primaryKey;
-		}
-
-		if ($has && $belong) {
-			$habtm = $target;
-			$habtmAlias = $alias;
-			$habtmKey = $habtm->primaryKey;
-			$assocKey = $relation['associationForeignKey'];
-			$alias = $relation['with'];
-			$target = $parent->$alias;
 		}
 
 		$tmp = explode($paths['root'], '.');
@@ -339,7 +348,7 @@ class EagerLoader extends Model {
 			'parentAlias', 'parentKey',
 			'targetKey', 'aliasPath', 'propertyPath',
 			'options', 'has', 'many', 'belong', 'external',
-			'habtm', 'habtmAlias', 'habtmKey', 'assocKey'
+			'habtm', 'habtmAlias', 'habtmParentKey', 'habtmTargetKey'
 		);
 
 		$paths['aliasPath'] = $aliasPath;
