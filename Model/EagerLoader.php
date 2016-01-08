@@ -4,14 +4,14 @@ class EagerLoader extends Model {
 
 	public $useTable = false;
 
-	private $settings = [];
+	private $settings = array();
 
-	private $containOptions = [
+	private $containOptions = array(
 		'conditions' => 1,
 		'fields' => 1,
 		'order' => 1,
 		'limit' => 1,
-	];
+	);
 
 	public function isVirtualField($field) {
 		return true;
@@ -31,15 +31,15 @@ class EagerLoader extends Model {
 
 		$contain = $this->reformatContain($query['contain']);
 		foreach ($contain['contain'] as $key => $val) {
-			$this->parseContain($model, $key, $val, [
+			$this->parseContain($model, $key, $val, array(
 				'root' => $model->alias, 
 				'aliasPath' => $model->alias,
 				'propertyPath' => '',
-			]);
+			));
 		}
 
 		$query = $this->attachAssociations($model, $model->alias, $query);
-		$query['fields'] = array_merge($query['fields'], ['(' . $this->id . ') AS EagerLoader__id']);
+		$query['fields'] = array_merge($query['fields'], array('(' . $this->id . ') AS EagerLoader__id'));
 
 		return $query;
 	}
@@ -71,7 +71,7 @@ class EagerLoader extends Model {
 						$joinType = ($field['null'] ? 'LEFT' : 'INNER');
 					}
 
-					$query = $this->buildJoinQuery($target, $query, $joinType, ["$parentAlias.$parentKey" => "$alias.$targetKey"], $options);
+					$query = $this->buildJoinQuery($target, $query, $joinType, array("$parentAlias.$parentKey" => "$alias.$targetKey"), $options);
 				}
 			}
 		}
@@ -98,7 +98,7 @@ class EagerLoader extends Model {
 			foreach ($metas as $alias => $meta) {
 				extract($meta);
 
-				$assocResults = [];
+				$assocResults = array();
 
 				$assocAlias = $alias;
 				$assocKey = $targetKey;
@@ -111,9 +111,9 @@ class EagerLoader extends Model {
 						$assocAlias = $habtmAlias;
 						$assocKey = $habtmParentKey;
 
-						$options = $this->buildJoinQuery($habtm, $options, 'INNER', [
+						$options = $this->buildJoinQuery($habtm, $options, 'INNER', array(
 							"$alias.$targetKey" => "$habtmAlias.$habtmTargetKey",
-						], $options);
+						), $options);
 					}
 
 					$options = $this->addKeyField($target, $options, "$assocAlias.$assocKey");
@@ -122,7 +122,7 @@ class EagerLoader extends Model {
 					$ids = array_unique($ids);
 
 					if (empty($options['limit'])) {
-						$options['conditions'] = array_merge($options['conditions'], ["$assocAlias.$assocKey" => $ids]);
+						$options['conditions'] = array_merge($options['conditions'], array("$assocAlias.$assocKey" => $ids));
 						$assocResults = $db->read($target, $options);
 					} else {
 						foreach ($ids as $id) {
@@ -133,10 +133,10 @@ class EagerLoader extends Model {
 
 					// Triggers afterFind for the external primary model.
 					$this->$alias = $target; // Hack for DboSource::_filterResults()
-					$db->dispatchMethod('_filterResultsInclusive', [&$assocResults, $this, [$alias]]);
+					$db->dispatchMethod('_filterResultsInclusive', array(&$assocResults, $this, array($alias)));
 				} else {
 					foreach ($results as &$result) {
-						$assocResults[] = [ $alias => $result[$alias] ];
+						$assocResults[] = array( $alias => $result[$alias] );
 						unset($result[$alias]);
 					}
 				}
@@ -144,12 +144,12 @@ class EagerLoader extends Model {
 				$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
 
 				foreach ($results as &$result) {
-					$assoc = [];
+					$assoc = array();
 
 					foreach ($assocResults as $assocResult) {
 						if ($result[$parentAlias][$parentKey] == $assocResult[$assocAlias][$assocKey]) {
 							if ($has && $belong) {
-								$assoc[] = $assocResult[$alias] + [$assocAlias => $assocResult[$assocAlias]];
+								$assoc[] = $assocResult[$alias] + array($assocAlias => $assocResult[$assocAlias]);
 							} else {
 								$assoc[] = $assocResult[$alias];
 							}
@@ -157,7 +157,7 @@ class EagerLoader extends Model {
 					}
 
 					if (!$many) {
-						$assoc = $assoc ? current($assoc) : [];
+						$assoc = $assoc ? current($assoc) : array();
 					}
 
 					$result = Hash::insert($result, $propertyPath, $assoc + (array)Hash::get($result, $propertyPath));
@@ -181,21 +181,21 @@ class EagerLoader extends Model {
  * @return array
  */
 	private function reformatContain($contain) {
-		$result = [
-			'options' => [],
-			'contain' => [],
-		];
+		$result = array(
+			'options' => array(),
+			'contain' => array(),
+		);
 
 		$contain = (array)$contain;
 		foreach ($contain as $key => $val) {
 			if (is_int($key)) {
 				$key = $val;
-				$val = [];
+				$val = array();
 			}
 
 			if (!isset($this->containOptions[$key])) {
 				if (strpos($key, '.') !== false) {
-					$expanded = Hash::expand([$key => $val]);
+					$expanded = Hash::expand(array($key => $val));
 					list($key, $val) = each($expanded);
 				}
 				$ref =& $result['contain'][$key];
@@ -219,15 +219,15 @@ class EagerLoader extends Model {
 	private function normalizeQuery(Model $model, array $query) {
 		$db = $model->getDataSource();
 
-		$query += [
-			'fields' => [],
-			'conditions' => []
-		];
+		$query += array(
+			'fields' => array(),
+			'conditions' => array()
+		);
 
 		if (!$query['fields']) {
 			$query['fields'] = $db->fields($model);
 		} else {
-			$query['fields'] = array_map([$db, 'name'], (array)$query['fields']);
+			$query['fields'] = array_map(array($db, 'name'), (array)$query['fields']);
 		}
 
 		$query['conditions'] = (array)$query['conditions'];
@@ -257,12 +257,12 @@ class EagerLoader extends Model {
 			$options['conditions'][$lhs] = $db->identifier($rhs);
 		}
 
-		$query['joins'][] = [
+		$query['joins'][] = array(
 			'type' => $joinType,
 			'table' => $db->fullTableName($target),
 			'alias' => $target->alias,
 			'conditions' => $options['conditions'],
-		];
+		);
 		return $query;
 	}
 
