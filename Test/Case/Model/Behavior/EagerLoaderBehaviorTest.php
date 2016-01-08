@@ -1,7 +1,7 @@
 <?php
-require_once App::pluginPath('EagerLoadable') . 'Test' . DS . 'bootstrap.php';
+require_once App::pluginPath('EagerLoader') . 'Test' . DS . 'bootstrap.php';
 
-class EagerLoadableBehaviorTest extends CakeTestCase {
+class EagerLoaderBehaviorTest extends CakeTestCase {
 
 /**
  * Fixtures
@@ -350,4 +350,103 @@ class EagerLoadableBehaviorTest extends CakeTestCase {
 		);
 	}
 
+/**
+ * Tests that afterFind is called correctly 
+ *
+ * @return 
+ */
+	public function testAfterFind() {
+		$Comment = $this->getMockForModel('Comment', array('afterFind'));
+		$Comment->expects($this->once())
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'Comment' => array(
+							'id' => '5',
+							'article_id' => '2',
+						),
+						'Article' => array(
+							'id' => '2',
+							'user_id' => '3',
+							'User' => array(
+								'id' => '3',
+							),
+						),
+						'Attachment' => array(
+							'id' => '1',
+							'comment_id' => '5',
+						),
+					),
+				),
+				true
+				//}}}
+			);
+
+		$Article = $this->getMockForModel('Article', array('afterFind'));
+		$Article->expects($this->once())
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'Article' => array(
+							'id' => '2',
+							'user_id' => '3',
+						),
+					)
+				),
+				false
+				// }}}
+			)
+			->will($this->returnArgument(0));
+
+		$User = $this->getMockForModel('User', array('afterFind'));
+		$User->expects($this->once())
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'User' => array(
+							'id' => '3',
+						),
+					),
+				),
+				false
+				// }}}
+			)
+			->will($this->returnArgument(0));
+
+		$Attachment = $this->getMockForModel('Attachment', array('afterFind'));
+		$Attachment->expects($this->once())
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'Attachment' => array(
+							'id' => '1',
+							'comment_id' => '5',
+						),
+					),
+				),
+				false
+				// }}}
+			)
+			->will($this->returnArgument(0));
+
+		$result = $Comment->find('first', array(
+			'fields' => 'Comment.id',
+			'contain' => array(
+				'Article' => array('fields' => 'Article.id'),
+				'Article.User' => array('fields' => 'User.id'),
+				'Attachment' => array('fields' => 'Attachment.id'),
+			),
+			'conditions' => array(
+				'Comment.id' => 5,
+			),
+		));
+	}
 }

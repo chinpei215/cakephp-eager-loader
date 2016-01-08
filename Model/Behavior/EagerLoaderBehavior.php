@@ -1,5 +1,5 @@
 <?php
-class EagerLoadableBehavior extends ModelBehavior {
+class EagerLoaderBehavior extends ModelBehavior {
 
 	public function setup(Model $model, $config = array()) {
 		$this->settings[$model->alias] = $config;
@@ -7,7 +7,7 @@ class EagerLoadableBehavior extends ModelBehavior {
 
 	public function beforeFind(Model $model, $query) {
 		if (!empty($query['contain'])) {
-			$EagerLoader = ClassRegistry::init('EagerLoadable.EagerLoader');
+			$EagerLoader = ClassRegistry::init('EagerLoader.EagerLoader');
 			$query = $EagerLoader->transformQuery($model, $query);
 		}
 		return $query;
@@ -16,7 +16,7 @@ class EagerLoadableBehavior extends ModelBehavior {
 	public function afterFind(Model $model, $results, $primary = false) {
 		$id = Hash::get($results, '0.EagerLoader.id');
 		if ($id) {
-			$EagerLoader = ClassRegistry::init('EagerLoadable.EagerLoader');
+			$EagerLoader = ClassRegistry::init('EagerLoader.EagerLoader');
 			$EagerLoader->id = $id;
 			foreach ($results as &$result) {
 				unset($result['EagerLoader']);

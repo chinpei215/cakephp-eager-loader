@@ -1,7 +1,7 @@
 <?php
-require_once App::pluginPath('EagerLoadable') . 'Test' . DS . 'bootstrap.php';
+require_once App::pluginPath('EagerLoader') . 'Test' . DS . 'bootstrap.php';
 
-App::uses('EagerLoader', 'EagerLoadable.Model');
+App::uses('EagerLoader', 'EagerLoader.Model');
 
 class EagerLoaderTest extends CakeTestCase {
 
