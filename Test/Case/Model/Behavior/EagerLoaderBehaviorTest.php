@@ -18,8 +18,12 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 	);
 
 /**
- * 
+ * Tests eager loading
  *
+ * @param string $model Name of the model
+ * @param array $options Options for find method
+ * @param int $expectedQueryCount Expected query count
+ * @param array $expectedResults Expected results
  * @return void
  *
  * @dataProvider dataProviderForTestEagerLoad
@@ -41,7 +45,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 	}
 
 /**
- * 
+ * Data provider for testEagerLoad
  *
  * @return array
  */
@@ -351,9 +355,9 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 	}
 
 /**
- * Tests that afterFind is called correctly 
+ * Tests that afterFind is called correctly
  *
- * @return 
+ * @return void
  */
 	public function testAfterFind() {
 		$Comment = $this->getMockForModel('Comment', array('afterFind'));
@@ -433,7 +437,6 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			)
 			->will($this->returnArgument(0));
 
-
 		$Article = $this->getMockForModel('Article', array('afterFind'));
 		$Article->expects($this->once())
 			->method('afterFind')
@@ -502,7 +505,9 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 	}
 
 /**
+ * Tests that afterFind works for in case of getting empty results.
  *
+ * @return void
  */
 	public function testAfterFindNoResults() {
 		$User = ClassRegistry::init('User');

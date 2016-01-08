@@ -43,8 +43,9 @@ class EagerLoaderTest extends CakeTestCase {
 
 /**
  * Tests reformatContain method
- * 
  *
+ * @param array|string $contain Value of `contain` option
+ * @param array $expected Expected
  * @return void
  *
  * @dataProvider dataProviderForTestReformatContain
@@ -142,7 +143,7 @@ class EagerLoaderTest extends CakeTestCase {
 										'Profile' => array('options' => array(), 'contain' => array()),
 									),
 								),
-							), 
+							),
 						),
 					),
 				),
@@ -165,7 +166,7 @@ class EagerLoaderTest extends CakeTestCase {
 		$method = new ReflectionMethod('EagerLoader', 'buildJoinQuery');
 		$method->setAccessible(true);
 		$result = $method->invokeArgs($this->EagerLoader, array(
-			$User, 
+			$User,
 			array('fields' => array()),
 			'INNER',
 			array('Article.user_id' => 'User.id'),
@@ -178,12 +179,12 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$expected = array(
 			'fields' => array_map(array($db, 'name'), array(
-				'User.id', 
-				'User.user', 
-				'User.password', 
-				'User.created', 
-				'User.updated', 
-				'Article.user_id', 
+				'User.id',
+				'User.user',
+				'User.password',
+				'User.created',
+				'User.updated',
+				'Article.user_id',
 			)),
 			'joins' => array(
 				array(
@@ -202,8 +203,12 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * Tests perseContain method 
+ * Tests perseContain method
  *
+ * @param string $model Parent model of the contained model
+ * @param string $alias Alias of the contained model
+ * @param array $contain Reformatted `contain` option for the deep associations
+ * @param array $expected Expected
  * @return void
  *
  * @dataProvider dataProviderForTestParseContain
@@ -235,8 +240,13 @@ class EagerLoaderTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 	}
 
+/**
+ * Data provider for testParseContain
+ *
+ * @return array
+ */
 	public function dataProviderForTestParseContain() {
-		return array( 
+		return array(
 			array(
 				// {{{ #0
 				'Comment',
@@ -422,14 +432,15 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * 
+ * Tests that parseContain method throws an exception,
+ * if the parent model is not associated with the specified model.
  *
  * @return void
  *
  * @expectedException InvalidArgumentException
  * @expectedExceptionMessage Model "User" is not associated with model "Something"
  */
-	public function testParseContainTriggersWarning() {
+	public function testParseContainThrowsException() {
 		$User = ClassRegistry::init('User');
 
 		$method = new ReflectionMethod('EagerLoader', 'parseContain');
@@ -447,9 +458,10 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * 
+ * Tests normalizeQuery method
  *
- *
+ * @param array $query Query
+ * @param array $expected Expected
  * @return void
  *
  * @dataProvider dataProviderForTestNormalizeQuery
@@ -472,11 +484,11 @@ class EagerLoaderTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 	}
 
-	/**
-	 * Data provider for testNormalizeQuery
-	 *
-	 * @return array
-	 */
+/**
+ * Data provider for testNormalizeQuery
+ *
+ * @return array
+ */
 	public function dataProviderForTestNormalizeQuery() {
 		return array(
 			array(

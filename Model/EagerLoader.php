@@ -1,29 +1,37 @@
 <?php
 
+/**
+ * EagerLoader class
+ */
 class EagerLoader extends Model {
 
 	public $useTable = false;
 
-	private $settings = array();
+	private $settings = array(); // @codingStandardsIgnoreLine
 
-	private $containOptions = array(
+	private $containOptions = array(  // @codingStandardsIgnoreLine
 		'conditions' => 1,
 		'fields' => 1,
 		'order' => 1,
 		'limit' => 1,
 	);
 
+/**
+ * Returns true
+ *
+ * @param string $field Name of field to look for
+ * @return bool
+ */
 	public function isVirtualField($field) {
 		return true;
 	}
 
 /**
- * 
+ * Modifies the passed query to fetch the top level attachable associations.
  *
- * @param $model
- * @param $query
- *
- * @return array
+ * @param Model $model Model
+ * @param array $query Query
+ * @return array Modified query
  */
 	public function transformQuery(Model $model, $query) {
 		static $id = 0;
@@ -32,7 +40,7 @@ class EagerLoader extends Model {
 		$contain = $this->reformatContain($query['contain']);
 		foreach ($contain['contain'] as $key => $val) {
 			$this->parseContain($model, $key, $val, array(
-				'root' => $model->alias, 
+				'root' => $model->alias,
 				'aliasPath' => $model->alias,
 				'propertyPath' => '',
 			));
@@ -45,15 +53,14 @@ class EagerLoader extends Model {
 	}
 
 /**
- * 
+ * Modifies the query to fetch attachable associations.
  *
- * @param $model
- * @param $path
- * @param $query
- *
- * @return array
+ * @param Model $model Model
+ * @param string $path The target path of the model, such as 'User.Article'
+ * @param array $query Query
+ * @return array Modified query
  */
-	private function attachAssociations(Model $model, $path, array $query) {
+	private function attachAssociations(Model $model, $path, array $query) { // @codingStandardsIgnoreLine
 		$db = $model->getDataSource();
 
 		$query = $this->normalizeQuery($model, $query);
@@ -83,13 +90,14 @@ class EagerLoader extends Model {
 	}
 
 /**
+ * Fetches external associations
  * 
- * @param string $path
- * @param array $results
- *
+ * @param string $path The target path of the external primary model, such as 'User.Article'
+ * @param array $results The results of the parent model
+ * @param bool $clear If true, the settings for eager loading will be removed
  * @return array
  */
-	public function loadExternal($path, array $results, $primary = true) {
+	public function loadExternal($path, array $results, $clear = true) {
 		$metas =& $this->settings[$this->id][$path];
 
 		if ($metas) {
@@ -166,21 +174,20 @@ class EagerLoader extends Model {
 			}
 		}
 
-		if ($primary) {
+		if ($clear) {
 			unset($this->settings[$this->id]);
 		}
-		
+
 		return $results;
 	}
 
 /**
- * 
+ * Reformat `contain` array  
  *
- * @param $contain
- *
+ * @param array|string $contain The value of `contain` option of the query
  * @return array
  */
-	private function reformatContain($contain) {
+	private function reformatContain($contain) { // @codingStandardsIgnoreLine
 		$result = array(
 			'options' => array(),
 			'contain' => array(),
@@ -209,14 +216,13 @@ class EagerLoader extends Model {
 	}
 
 /**
- * 
+ * Normalizes the query
  *
- * @param Model $model
- * @param array $query
- *
- * @return 
+ * @param Model $model Model
+ * @param array $query Query
+ * @return array Normalized query
  */
-	private function normalizeQuery(Model $model, array $query) {
+	private function normalizeQuery(Model $model, array $query) { // @codingStandardsIgnoreLine
 		$db = $model->getDataSource();
 
 		$query += array(
@@ -236,16 +242,16 @@ class EagerLoader extends Model {
 	}
 
 /**
- * 
+ * Modifies the query to apply joins.
  *
- * @param $query
- * @param $target
- * @param $joinType
- * @param $options
- *
- * @return 
+ * @param Model $target Model to be joined
+ * @param array $query Query
+ * @param string $joinType The type for join
+ * @param array $keys Key fields being used for join
+ * @param array $options Extra options for join
+ * @return array Modified query
  */
-	private function buildJoinQuery(Model $target, array $query, $joinType, array $keys, array $options) {
+	private function buildJoinQuery(Model $target, array $query, $joinType, array $keys, array $options) { // @codingStandardsIgnoreLine
 		$db = $target->getDataSource();
 
 		$options = $this->normalizeQuery($target, $options);
@@ -267,14 +273,14 @@ class EagerLoader extends Model {
 	}
 
 /**
- * 
+ * Adds a key field into the `fields` option of the query
  *
- * @param $query
- * @param $key
- *
- * @return 
+ * @param Model $model Model
+ * @param array $query Query
+ * @param string $key Name of the key field
+ * @return Modified query
  */
-	private function addKeyField(Model $model, $query, $key) {
+	private function addKeyField(Model $model, array $query, $key) { // @codingStandardsIgnoreLine
 		$db = $model->getDataSource();
 
 		$quotedKey = $db->name($key);
@@ -285,16 +291,16 @@ class EagerLoader extends Model {
 	}
 
 /**
- * 
+ * Parse the `contain` option of the query recursively
  *
- * @param Model $parent
- * @param string $alias
- * @param array $contain
- * @param array $paths
- *
+ * @param Model $parent Parent model of the contained model
+ * @param string $alias Alias of the contained model
+ * @param array $contain Reformatted `contain` option for the deep associations
+ * @param array $paths Path information of the root model, etc.
  * @return array
+ * @throws InvalidArgumentException
  */
-	private function parseContain(Model $parent, $alias, array $contain, array $paths) {
+	private function parseContain(Model $parent, $alias, array $contain, array $paths) { // @codingStandardsIgnoreLine
 		$map =& $this->settings[$this->id];
 
 		$aliasPath = $paths['aliasPath'] . '.' . $alias;
