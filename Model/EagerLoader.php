@@ -158,7 +158,7 @@ class EagerLoader extends Model {
 			$assocResults = array();
 			foreach ($ids as $id) {
 				$eachOptions = $this->addConditions($options, array("$assocAlias.$assocKey" => $id));
-				$assocResults = array_merge($db->read($target, $eachOptions), $assocResults);
+				$assocResults = array_merge($assocResults, $db->read($target, $eachOptions));
 			}
 		}
 

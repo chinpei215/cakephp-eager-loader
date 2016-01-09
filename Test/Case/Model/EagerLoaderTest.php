@@ -553,51 +553,85 @@ class EagerLoaderTest extends CakeTestCase {
 /**
  * Tests mergeExternalExternal method
  *
+ * @param string $parent
+ * @param string $target
+ * @param array $meta
+ * @param array $results
+ * @param array $fixtures
+ * @param array $expectedArgument
+ * @param array $expectedResults
  * @return void
+ *
+ * @dataProvider dataProviderForTestMergeExternalExternal
  */
-	public function testMergeExternalExternal() {
-		$this->loadFixtures('User', 'Comment');
+	public function testMergeExternalExternal($parent, $target, $meta, $results, $fixtures, $expectedArgument, $expectedResults) {
+		call_user_func_array(array($this, 'loadFixtures'), $fixtures);
 
-		$User = ClassRegistry::init('User');
+		$parent = ClassRegistry::init($parent);
+		$target = ClassRegistry::init($target);
 
-		$meta = array(
-			'parent' => $User,
-			'target' => $User->Comment,
-			'parentAlias' => 'User',
-			'parentKey' => 'id',
-			'targetKey' => 'user_id',
-			'aliasPath' => 'User.Comment',
-			'propertyPath' => 'User.Comment',
-			'options' => array(
-				'fields' => 'id',
-			),
-			'has' => true,
-			'belong' => false,
-			'many' => true,
-			'external' => true,
+		$meta += array(
+			'parent' => $parent,
+			'target' => $target,
+			'parentAlias' => $parent->alias,
+			'aliasPath' => $parent->alias . '.' . $target->alias,
+			'propertyPath' => $parent->alias . '.' . $target->alias,
 		);
 
-		$results = array(
-			// {{{
-			array(
-				'User' => array(
-					'id' => '2',
-				),
-			),
-			array(
-				'User' => array(
-					'id' => '4',
-				),
-			),
-			// }}}
-		);
+		if (isset($meta['habtmAlias'])) {
+			$meta['habtm'] = $parent->$meta['habtmAlias'];
+		}
 
 		$EagerLoader = $this->getMock('EagerLoader');
 		$EagerLoader->expects($this->once())
 			->method('loadExternal')
-			->with(
-				// {{{
-				'User.Comment', 
+			->with($meta['aliasPath'], $expectedArgument, false)
+			->will($this->returnArgument(1));
+
+		$method = new ReflectionMethod('EagerLoader', 'mergeExternalExternal');
+		$method->setAccessible(true);
+		$merged = $method->invokeArgs($EagerLoader, array($results, $target->alias, $meta));
+
+		$this->assertEquals($expectedResults, $merged);
+	}
+
+/**
+ * Data provider for mergeExternalExternal method
+ *
+ * @return array
+ */
+	public function dataProviderForTestMergeExternalExternal() {
+		return array(
+			array(
+				// {{{ #0 hasMany
+				'User',
+				'Comment',
+				// $meta
+				array(
+					'parentKey' => 'id',
+					'targetKey' => 'user_id',
+					'options' => array('fields' => 'id'),
+					'has' => true,
+					'belong' => false,
+					'many' => true,
+					'external' => true,
+				),
+				// $results
+				array(
+					array(
+						'User' => array(
+							'id' => '2',
+						),
+					),
+					array(
+						'User' => array(
+							'id' => '4',
+						),
+					),
+				),
+				// $frixtures
+				array('User', 'Comment'),
+				// $expectedArgument
 				array(
 					array(
 						'Comment' => array(
@@ -618,47 +652,274 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
-				false
-				// }}}
-			)
-			->will($this->returnArgument(1));
-
-		$method = new ReflectionMethod('EagerLoader', 'mergeExternalExternal');
-		$method->setAccessible(true);
-		$merged = $method->invokeArgs($EagerLoader, array($results, 'Comment', $meta));
-
-		$expected = array(
-			// {{{
-			array(
-				'User' => array(
-					'id' => '2',
-					'Comment' => array(
-						array(
-							'id' => '1',
-							'user_id' => '2',
+				// $expectedResults
+				array(
+					array(
+						'User' => array(
+							'id' => '2',
+							'Comment' => array(
+								array(
+									'id' => '1',
+									'user_id' => '2',
+								),
+								array(
+									'id' => '6',
+									'user_id' => '2',
+								),
+							),
 						),
-						array(
-							'id' => '6',
-							'user_id' => '2',
+					),
+					array(
+						'User' => array(
+							'id' => '4',
+							'Comment' => array(
+								array(
+									'id' => '2',
+									'user_id' => '4',
+								),
+							),
+						),
+					)
+				),
+				// }}}
+			),
+			array(
+				// {{{ #1 hasMany (limited)
+				'User',
+				'Comment',
+				// $meta
+				array(
+					'parentKey' => 'id',
+					'targetKey' => 'user_id',
+					'options' => array('fields' => 'id', 'limit' => 1),
+					'has' => true,
+					'belong' => false,
+					'many' => true,
+					'external' => true,
+				),
+				// $results
+				array(
+					array(
+						'User' => array(
+							'id' => '2',
+						),
+					),
+					array(
+						'User' => array(
+							'id' => '4',
 						),
 					),
 				),
-			),
-			array(
-				'User' => array(
-					'id' => '4',
-					'Comment' => array(
-						array(
+				// $frixtures
+				array('User', 'Comment'),
+				// $expectedArgument
+				array(
+					array(
+						'Comment' => array(
+							'id' => '1',
+							'user_id' => '2',
+						),
+					),
+					array(
+						'Comment' => array(
 							'id' => '2',
 							'user_id' => '4',
 						),
 					),
 				),
-			)
-			// }}}
+				// $expectedResults
+				array(
+					array(
+						'User' => array(
+							'id' => '2',
+							'Comment' => array(
+								array(
+									'id' => '1',
+									'user_id' => '2',
+								),
+							),
+						),
+					),
+					array(
+						'User' => array(
+							'id' => '4',
+							'Comment' => array(
+								array(
+									'id' => '2',
+									'user_id' => '4',
+								),
+							),
+						),
+					)
+				),
+				// }}}
+			),
+			array(
+				// {{{ #2 hasOne
+				'Comment',
+				'Attachment',
+				// $meta
+				array(
+					'parentKey' => 'id',
+					'targetKey' => 'comment_id',
+					'options' => array('fields' => 'id'),
+					'has' => true,
+					'belong' => false,
+					'many' => false,
+					'external' => true,
+				),
+				// $results
+				array(
+					array(
+						'Comment' => array(
+							'id' => '5',
+						),
+					),
+				),
+				// $frixtures
+				array('Comment', 'Attachment'),
+				// $expectedArgument
+				array(
+					array(
+						'Attachment' => array(
+							'id' => '1',
+							'comment_id' => '5',
+						),
+					),
+				),
+				// $expectedResults
+				array(
+					array(
+						'Comment' => array(
+							'id' => '5',
+							'Attachment' => array(
+								'id' => '1',
+								'comment_id' => '5',
+							),
+						),
+					),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #3 hasAndBelongsToMany
+				'Article',
+				'Tag',
+				// $meta
+				array(
+					'parentKey' => 'id',
+					'targetKey' => 'id',
+					'options' => array('fields' => 'id'),
+					'habtmAlias' => 'ArticlesTag',
+					'habtmParentKey' => 'article_id',
+					'habtmTargetKey' => 'tag_id',
+					'has' => true,
+					'belong' => true,
+					'many' => true,
+					'external' => true,
+				),
+				// $results
+				array(
+					array(
+						'Article' => array(
+							'id' => '1',
+						),
+					),
+					array(
+						'Article' => array(
+							'id' => '2',
+						),
+					),
+				),
+				// $frixtures
+				array('Article', 'Tag', 'ArticlesTag'),
+				// $expectedArgument
+				array(
+					array(
+						'Tag' => array(
+							'id' => '1',
+						),
+						'ArticlesTag' => array(
+							'article_id' => '1',
+							'tag_id' => '1',
+						),
+					),
+					array(
+						'Tag' => array(
+							'id' => '2',
+						),
+						'ArticlesTag' => array(
+							'article_id' => '1',
+							'tag_id' => '2',
+						),
+					),
+					array(
+						'Tag' => array(
+							'id' => '1',
+						),
+						'ArticlesTag' => array(
+							'article_id' => '2',
+							'tag_id' => '1',
+						),
+					),
+					array(
+						'Tag' => array(
+							'id' => '3',
+						),
+						'ArticlesTag' => array(
+							'article_id' => '2',
+							'tag_id' => '3',
+						),
+					),
+				),
+				// $expectedResults
+				array(
+					array(
+						'Article' => array(
+							'id' => '1',
+							'Tag' => array(
+								array(
+									'id' => '1',
+									'ArticlesTag' => array(
+										'article_id' => '1',
+										'tag_id' => '1',
+									),
+								),
+								array(
+									'id' => '2',
+									'ArticlesTag' => array(
+										'article_id' => '1',
+										'tag_id' => '2',
+									),
+								),
+							),
+						),
+					),
+					array(
+						'Article' => array(
+							'id' => '2',
+							'Tag' => array(
+								array(
+									'id' => '1',
+									'ArticlesTag' => array(
+										'article_id' => '2',
+										'tag_id' => '1',
+									),
+								),
+								array(
+									'id' => '3',
+									'ArticlesTag' => array(
+										'article_id' => '2',
+										'tag_id' => '3',
+									),
+								),
+							),
+						),
+					),
+				),
+				// }}}
+			),
 		);
-
-		$this->assertEquals($expected, $merged);
 	}
 
 /**
