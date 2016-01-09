@@ -604,7 +604,7 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * Tests mergeExternalExternal method
+ * Tests mergeExternalExternal and mergeInternalExternal
  *
  * @param string $parent Name of the parent model
  * @param string $target Name of the target model
@@ -615,9 +615,9 @@ class EagerLoaderTest extends CakeTestCase {
  * @param array $expectedResults Expected results
  * @return void
  *
- * @dataProvider dataProviderForTestMergeExternalExternal
+ * @dataProvider dataProviderForTestMergeExternal
  */
-	public function testMergeExternalExternal($parent, $target, $meta, $results, $fixtures, $expectedArgument, $expectedResults) {
+	public function testMergeExternal($parent, $target, $meta, $results, $fixtures, $expectedArgument, $expectedResults) {
 		call_user_func_array(array($this, 'loadFixtures'), $fixtures);
 
 		$parent = ClassRegistry::init($parent);
@@ -641,7 +641,7 @@ class EagerLoaderTest extends CakeTestCase {
 			->with($meta['aliasPath'], $expectedArgument, false)
 			->will($this->returnArgument(1));
 
-		$method = new ReflectionMethod('EagerLoader', 'mergeExternalExternal');
+		$method = new ReflectionMethod('EagerLoader', ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
 		$method->setAccessible(true);
 		$merged = $method->invokeArgs($EagerLoader, array($results, $target->alias, $meta));
 
@@ -649,11 +649,11 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * Data provider for mergeExternalExternal method
+ * Data provider for testMergeExternal method
  *
  * @return array
  */
-	public function dataProviderForTestMergeExternalExternal() {
+	public function dataProviderForTestMergeExternal() {
 		return array(
 			array(
 				// {{{ #0 hasMany
@@ -808,7 +808,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #2 hasOne
+				// {{{ #2 hasOne (external)
 				'Comment',
 				'Attachment',
 				// $meta
@@ -972,67 +972,51 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				// }}}
 			),
-		);
-	}
-
-/**
- * Tests mergeInternalExternal method
- *
- * @return void
- */
-	public function testMergeInternalExternal() {
-		$this->loadFixtures('Article', 'User');
-
-		$Article = ClassRegistry::init('Article');
-
-		$meta = array(
-			'parent' => $Article,
-			'target' => $Article->User,
-			'parentAlias' => 'Article',
-			'parentKey' => 'user_id',
-			'targetKey' => 'id',
-			'aliasPath' => 'Article.User',
-			'propertyPath' => 'Article.User',
-			'options' => array(
-				'fields' => 'id',
-			),
-			'has' => false,
-			'belong' => true,
-			'many' => false,
-			'external' => false,
-		);
-
-		$results = array(
-			// {{{
 			array(
-				'Article' => array(
-					'id' => '1',
-					'user_id' => '1',
+				// {{{ #4 belongsTo 
+				'Article',
+				'User',
+				// $meta
+				array(
+					'parentAlias' => 'Article',
+					'parentKey' => 'user_id',
+					'targetKey' => 'id',
+					'aliasPath' => 'Article.User',
+					'propertyPath' => 'Article.User',
+					'options' => array(
+						'fields' => 'id',
+					),
+					'has' => false,
+					'belong' => true,
+					'many' => false,
+					'external' => false,
 				),
-				'User' => array(
-					'id' => '1',
-					'dummy' => '1',
+				// $results
+				array(
+					array(
+						'Article' => array(
+							'id' => '1',
+							'user_id' => '1',
+						),
+						'User' => array(
+							'id' => '1',
+							'dummy' => '1',
+						),
+					),
+					array(
+						'Article' => array(
+							'id' => '3',
+							'user_id' => '1',
+						),
+						'User' => array(
+							'id' => '1',
+							'dummy' => '2',
+						),
+					)
 				),
-			),
-			array(
-				'Article' => array(
-					'id' => '3',
-					'user_id' => '1',
-				),
-				'User' => array(
-					'id' => '1',
-					'dummy' => '2',
-				),
-			)
-			// }}}
-		);
-
-		$EagerLoader = $this->getMock('EagerLoader');
-		$EagerLoader->expects($this->once())
-			->method('loadExternal')
-			->with(
-				// {{{
-				'Article.User',
+				// $fixtures
+				array('Article', 'User'),
+				// $expectedArgument
 				array(
 					array(
 						'User' => array(
@@ -1047,40 +1031,102 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 				),
-				false
-				// }}}
-			)
-			->will($this->returnArgument(1));
-
-		$method = new ReflectionMethod('EagerLoader', 'mergeInternalExternal');
-		$method->setAccessible(true);
-		$merged = $method->invokeArgs($EagerLoader, array($results, 'User', $meta));
-
-		$expected = array(
-			// {{{
-			array(
-				'Article' => array(
-					'id' => '1',
-					'user_id' => '1',
-					'User' => array(
-						'id' => '1',
-						'dummy' => '1',
+				// $expectedResults
+				array(
+					array(
+						'Article' => array(
+							'id' => '1',
+							'user_id' => '1',
+							'User' => array(
+								'id' => '1',
+								'dummy' => '1',
+							),
+						),
+					),
+					array(
+						'Article' => array(
+							'id' => '3',
+							'user_id' => '1',
+							'User' => array(
+								'id' => '1',
+								'dummy' => '2',
+							),
+						),
 					),
 				),
+				// }}}
 			),
 			array(
-				'Article' => array(
-					'id' => '3',
-					'user_id' => '1',
-					'User' => array(
-						'id' => '1',
-						'dummy' => '2',
+				// {{{ #5 hasOne
+				'Comment',
+				'Attachment',
+				// $meta
+				array(
+					'parentAlias' => 'Comment',
+					'parentKey' => 'id',
+					'targetKey' => 'comment_id',
+					'aliasPath' => 'Comment.Attachment',
+					'propertyPath' => 'Comment.Attachment',
+					'options' => array(
+						'fields' => 'id',
+					),
+					'has' => true,
+					'belong' => false,
+					'many' => false,
+					'external' => false,
+				),
+				// $results
+				array(
+					array(
+						'Comment' => array(
+							'id' => '1',
+						),
+						'Attachment' => array(),
+					),
+					array(
+						'Comment' => array(
+							'id' => '5',
+						),
+						'Attachment' => array(
+							'id' => '1',
+							'comment_id' => '5',
+						),
+					)
+				),
+				// $fixtures
+				array('Comment', 'Attachment'),
+				// $expectedArgument
+				array(
+					array(
+						'Attachment' => array(),
+					),
+					array(
+						'Attachment' => array(
+							'id' => '1',
+							'comment_id' => '5',
+						),
 					),
 				),
-			)
-			// }}}
+				// $expectedResults
+				array(
+					array(
+						'Comment' => array(
+							'id' => '1',
+							'Attachment' => array(),
+						),
+					),
+					array(
+						'Comment' => array(
+							'id' => '5',
+							'Attachment' => array(
+								'id' => '1',
+								'comment_id' => '5',
+							),
+						),
+					),
+				),
+				// }}}
+			),
 		);
-
-		$this->assertEquals($expected, $merged);
 	}
 }

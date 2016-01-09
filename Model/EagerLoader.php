@@ -102,17 +102,18 @@ class EagerLoader extends Model {
  * @return array
  */
 	public function loadExternal($path, array $results, $clear = true) {
-		$metas =& $this->settings[$this->id][$path];
+		if ($results) {
+			$metas =& $this->settings[$this->id][$path];
+			if ($metas) {
+				$metas = Hash::sort($metas, '{s}.propertyPath', 'desc');
 
-		if ($metas) {
-			$metas = Hash::sort($metas, '{s}.propertyPath', 'desc');
-
-			foreach ($metas as $alias => $meta) {
-				extract($meta);
-				if ($external) {
-					$results = $this->mergeExternalExternal($results, $alias, $meta);
-				} else {
-					$results = $this->mergeInternalExternal($results, $alias, $meta);
+				foreach ($metas as $alias => $meta) {
+					extract($meta);
+					if ($external) {
+						$results = $this->mergeExternalExternal($results, $alias, $meta);
+					} else {
+						$results = $this->mergeInternalExternal($results, $alias, $meta);
+					}
 				}
 			}
 		}
@@ -208,6 +209,7 @@ class EagerLoader extends Model {
 	private function mergeInternalExternal(array $results, $alias, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
+		$assocResults = array();
 		foreach ($results as $n => &$result) {
 			$assocResults[$n] = array( $alias => $result[$alias] );
 			unset($result[$alias]);
@@ -215,7 +217,6 @@ class EagerLoader extends Model {
 		unset($result);
 
 		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
-
 		foreach ($results as $n => &$result) {
 			$assoc = $assocResults[$n][$alias];
 			$result = $this->mergeAssocResult($result, $assoc, $propertyPath);
