@@ -159,7 +159,7 @@ class EagerLoader extends Model {
 		$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
 		$ids = array_unique($ids);
 
-		if (empty($options['limit'])) {
+		if (empty($options['limit']) && empty($options['offset'])) {
 			$options = $this->addConditions($options, array("$assocAlias.$assocKey" => $ids));
 			$assocResults = $db->read($target, $options);
 		} else {
@@ -232,8 +232,32 @@ class EagerLoader extends Model {
  * @param string $propertyPath Path of the results
  * @return array
  */
-	private function mergeAssocResult($result, $assoc, $propertyPath) { // @codingStandardsIgnoreLine
+	private function mergeAssocResult(array $result, array $assoc, $propertyPath) { // @codingStandardsIgnoreLine
 		return Hash::insert($result, $propertyPath, $assoc + (array)Hash::get($result, $propertyPath));
+	}
+
+/**
+ * Merges options of association
+ *
+ * @param array $options Options
+ * @param string $relation Relation
+ * @return array
+ */
+	private function mergeAssocOptions(array $options, array $relation) { // @codingStandardsIgnoreLine
+		if (!empty($relation['order'])) {
+			$options += array('order' => null);
+			$options['order'] = array_merge((array)$options['order'], (array)$relation['order']);
+		}
+
+		if (!empty($relation['limit'])) {
+			$options += array('limit' => $relation['limit']);
+		}
+
+		if (!empty($relation['offset'])) {
+			$options += array('offset' => $relation['offset']);
+		}
+
+		return $options;
 	}
 
 /**
@@ -399,6 +423,8 @@ class EagerLoader extends Model {
 		$relation = $parent->{$type}[$alias];
 		$options = $contain['options'];
 
+		$options = $this->mergeAssocOptions($options, $relation);
+
 		$has = (stripos($type, 'has') !== false);
 		$many = (stripos($type, 'many') !== false);
 		$belong = (stripos($type, 'belong') !== false);
@@ -420,7 +446,7 @@ class EagerLoader extends Model {
 
 		$tmp = explode($paths['root'], '.');
 		$rootAlias = end($tmp);
-		if ($many || $alias === $rootAlias || isset($map[$paths['root']][$alias])) {
+		if ($many || $alias === $rootAlias || isset($map[$paths['root']][$alias]) || !empty($options['limit']) || !empty($options['offset'])) {
 			$external = true;
 			$paths['root'] = $aliasPath;
 			$paths['propertyPath'] = $alias;

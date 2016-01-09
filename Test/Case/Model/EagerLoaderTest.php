@@ -436,6 +436,33 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				// }}}
 			),
+			array(
+				// {{{ #3
+				'Article',
+				'SecondComment',
+				array('options' => array(), 'contain' => array()),
+				array(
+					'Article' => array(
+						'SecondComment' => array(
+							'parentAlias' => 'Article',
+							'parentKey' => 'id',
+							'targetKey' => 'article_id',
+							'aliasPath' => 'Article.SecondComment',
+							'propertyPath' => 'SecondComment',
+							'options' => array(
+								'order' => array('SecondComment.id'),
+								'limit' => 1,
+								'offset' => 1,
+							),
+							'has' => true,
+							'belong' => false,
+							'many' => false,
+							'external' => true,
+						),
+					),
+				),
+				// }}}
+			),
 		);
 	}
 
