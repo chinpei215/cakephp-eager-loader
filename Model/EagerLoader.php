@@ -48,10 +48,10 @@ class EagerLoader extends Model {
 
 		$db = $model->getDataSource();
 		$value = $db->value($this->id);
-		$name = $db->name('EagerLoader__id');
+		$name = $db->name($this->alias . '__' . 'id');
 
 		$query = $this->attachAssociations($model, $model->alias, $query);
-		$query['fields'] = array_merge($query['fields'], array("($value) AS $name"));
+		$query['fields'][] = "($value) AS $name";
 
 		return $query;
 	}
@@ -160,7 +160,16 @@ class EagerLoader extends Model {
 		$ids = Hash::extract($results, "{n}.$parentAlias.$parentKey");
 		$ids = array_unique($ids);
 
-		if (empty($options['limit']) && empty($options['offset'])) {
+		if (!empty($finderQuery)) {
+			$assocResults = array();
+			foreach ($ids as $id) {
+				$eachQuery = str_replace('{$__cakeID__$}', $db->value($id), $finderQuery);
+				$eachAssocResults = $db->fetchAll($eachQuery, $target->cacheQueries);
+				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.{$this->alias}.assoc_id", $id);
+				$assocResults = array_merge($assocResults, $eachAssocResults);
+			}
+		} elseif (empty($options['limit']) && empty($options['offset'])) {
+			$options['fields'][] = "($assocAlias.$assocKey) AS " . $db->name($this->alias . '__' . 'assoc_id');
 			$options['conditions'][] = array("$assocAlias.$assocKey" => $ids);
 			$assocResults = $db->read($target, $options);
 		} else {
@@ -168,7 +177,9 @@ class EagerLoader extends Model {
 			foreach ($ids as $id) {
 				$eachOptions = $options;
 				$eachOptions['conditions'][] = array("$assocAlias.$assocKey" => $id);
-				$assocResults = array_merge($assocResults, $db->read($target, $eachOptions));
+				$eachAssocResults = $db->read($target, $eachOptions);
+				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.{$this->alias}.assoc_id", $id);
+				$assocResults = array_merge($assocResults, $eachAssocResults);
 			}
 		}
 
@@ -178,15 +189,19 @@ class EagerLoader extends Model {
 
 		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
 
+		if ($has && $belong) {
+			foreach ($assocResults as &$assocResult) {
+				$assocResult[$alias][$habtmAlias] = $assocResult[$habtmAlias];
+				unset($assocResult[$habtmAlias]);
+			}
+			unset($assocResult);
+		}
+
 		foreach ($results as &$result) {
 			$assoc = array();
 			foreach ($assocResults as $assocResult) {
-				if ($result[$parentAlias][$parentKey] == $assocResult[$assocAlias][$assocKey]) {
-					if ($has && $belong) {
-						$assoc[] = $assocResult[$alias] + array($assocAlias => $assocResult[$assocAlias]);
-					} else {
-						$assoc[] = $assocResult[$alias];
-					}
+				if ((string)$result[$parentAlias][$parentKey] === (string)$assocResult[$this->alias]['assoc_id']) {
+					$assoc[] = $assocResult[$alias];
 				}
 			}
 			if (!$many) {
@@ -402,10 +417,11 @@ class EagerLoader extends Model {
  * @param string $alias Alias of the contained model
  * @param array $contain Reformatted `contain` option for the deep associations
  * @param array $paths Path information of the root model, etc.
+ * @param bool $forceExternal Force external
  * @return array
  * @throws InvalidArgumentException
  */
-	private function parseContain(Model $parent, $alias, array $contain, array $paths) { // @codingStandardsIgnoreLine
+	private function parseContain(Model $parent, $alias, array $contain, array $paths, $forceExternal = false) { // @codingStandardsIgnoreLine
 		$map =& $this->settings[$this->id];
 
 		$aliasPath = $paths['aliasPath'] . '.' . $alias;
@@ -443,15 +459,22 @@ class EagerLoader extends Model {
 			$targetKey = $target->primaryKey;
 		}
 
-		$tmp = explode($paths['root'], '.');
-		$rootAlias = end($tmp);
-		if ($many || $alias === $rootAlias || isset($map[$paths['root']][$alias]) || !empty($options['limit']) || !empty($options['offset'])) {
-			$external = true;
+		if (!empty($relation['finderQuery'])) {
+			$finderQuery = $relation['finderQuery'];
+		}
+
+		$external = $forceExternal || $many || !empty($finderQuery) || !empty($options['limit']) || !empty($options['offset']);
+		if (!$external) {
+			$tmp = explode('.', $paths['root']);
+			$rootAlias = end($tmp);
+			$external = $alias === $rootAlias;
+		}
+
+		if ($external) {
 			$paths['root'] = $aliasPath;
 			$paths['propertyPath'] = $alias;
 			$path = $paths['aliasPath'];
 		} else {
-			$external = false;
 			$paths['propertyPath'] = $propertyPath;
 			$path = $paths['root'];
 		}
@@ -460,13 +483,13 @@ class EagerLoader extends Model {
 			'parent', 'target',
 			'parentAlias', 'parentKey',
 			'targetKey', 'aliasPath', 'propertyPath',
-			'options', 'has', 'many', 'belong', 'external',
+			'options', 'has', 'many', 'belong', 'external', 'finderQuery',
 			'habtm', 'habtmAlias', 'habtmParentKey', 'habtmTargetKey'
 		);
 
 		$paths['aliasPath'] = $aliasPath;
 		foreach ($contain['contain'] as $key => $val) {
-			$this->parseContain($target, $key, $val, $paths);
+			$this->parseContain($target, $key, $val, $paths, !empty($finderQuery));
 		}
 
 		return $map;

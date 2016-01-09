@@ -24,6 +24,7 @@ class EagerLoaderTest extends CakeTestCase {
 		'core.attachment',
 		'core.tag',
 		'core.articles_tag',
+		'core.apple',
 	);
 
 /**
@@ -220,7 +221,7 @@ class EagerLoaderTest extends CakeTestCase {
  * @dataProvider dataProviderForTestParseContain
  */
 	public function testParseContain($model, $alias, $contain, $expected) {
-		$this->loadFixtures('ArticlesTag');
+		$this->loadFixtures('ArticlesTag', 'Apple');
 
 		$model = ClassRegistry::init($model);
 
@@ -238,10 +239,11 @@ class EagerLoaderTest extends CakeTestCase {
 			)
 		));
 
-		// Remove instances
+		// Remove something
 		$result = Hash::remove($result, '{s}.{s}.target');
 		$result = Hash::remove($result, '{s}.{s}.parent');
 		$result = Hash::remove($result, '{s}.{s}.habtm');
+		$result = Hash::remove($result, '{s}.{s}.finderQuery');
 
 		$this->assertEquals($expected, $result);
 	}
@@ -254,7 +256,7 @@ class EagerLoaderTest extends CakeTestCase {
 	public function dataProviderForTestParseContain() {
 		return array(
 			array(
-				// {{{ #0
+				// {{{ #0 normal
 				'Comment',
 				'Article',
 				array(
@@ -297,7 +299,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #1
+				// {{{ #1 limit
 				'User',
 				'Article',
 				array(
@@ -387,7 +389,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #2
+				// {{{ #2 duplication
 				'Article',
 				'Tag',
 				array(
@@ -435,7 +437,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #3
+				// {{{ #3 association (limit/offset)
 				'Article',
 				'SecondComment',
 				array('options' => array(), 'contain' => array()),
@@ -454,6 +456,48 @@ class EagerLoaderTest extends CakeTestCase {
 							),
 							'has' => true,
 							'belong' => false,
+							'many' => false,
+							'external' => true,
+						),
+					),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #4 association (finderQuery)
+				'Apple',
+				'NextApple',
+				array(
+					'options' => array(),
+					'contain' => array(
+						'ParentApple' => array('options' => array(), 'contain' => array()),
+					)
+				),
+				array(
+					'Apple' => array(
+						'NextApple' => array(
+							'parentAlias' => 'Apple',
+							'parentKey' => 'id',
+							'targetKey' => 'apple_id',
+							'aliasPath' => 'Apple.NextApple',
+							'propertyPath' => 'NextApple',
+							'options' => array(),
+							'has' => true,
+							'belong' => false,
+							'many' => false,
+							'external' => true,
+						),
+					),
+					'Apple.NextApple' => array(
+						'ParentApple' => array(
+							'parentAlias' => 'NextApple',
+							'parentKey' => 'apple_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Apple.NextApple.ParentApple',
+							'propertyPath' => 'NextApple.ParentApple',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
 							'many' => false,
 							'external' => true,
 						),
@@ -621,7 +665,7 @@ class EagerLoaderTest extends CakeTestCase {
 		call_user_func_array(array($this, 'loadFixtures'), $fixtures);
 
 		$parent = ClassRegistry::init($parent);
-		$target = ClassRegistry::init($target);
+		$target = $parent->$target;
 
 		$meta += array(
 			'parent' => $parent,
@@ -635,13 +679,17 @@ class EagerLoaderTest extends CakeTestCase {
 			$meta['habtm'] = $parent->$meta['habtmAlias'];
 		}
 
-		$EagerLoader = $this->getMock('EagerLoader');
+		if ($target->alias === 'NextApple') {
+			$meta['finderQuery'] = $target->getNextAppleFinderQuery();
+		}
+
+		$EagerLoader = $this->getMockForModel('EagerLoader', array('loadExternal'));
 		$EagerLoader->expects($this->once())
 			->method('loadExternal')
 			->with($meta['aliasPath'], $expectedArgument, false)
 			->will($this->returnArgument(1));
 
-		$method = new ReflectionMethod('EagerLoader', ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
+		$method = new ReflectionMethod($EagerLoader, ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
 		$method->setAccessible(true);
 		$merged = $method->invokeArgs($EagerLoader, array($results, $target->alias, $meta));
 
@@ -691,17 +739,26 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '1',
 							'user_id' => '2',
 						),
+						'EagerLoader' => array(
+							'assoc_id' => '2',
+						),
 					),
 					array(
 						'Comment' => array(
 							'id' => '2',
 							'user_id' => '4',
 						),
+						'EagerLoader' => array(
+							'assoc_id' => '4',
+						),
 					),
 					array(
 						'Comment' => array(
 							'id' => '6',
 							'user_id' => '2',
+						),
+						'EagerLoader' => array(
+							'assoc_id' => '2',
 						),
 					),
 				),
@@ -772,11 +829,17 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '1',
 							'user_id' => '2',
 						),
+						'EagerLoader' => array(
+							'assoc_id' => '2',
+						),
 					),
 					array(
 						'Comment' => array(
 							'id' => '2',
 							'user_id' => '4',
+						),
+						'EagerLoader' => array(
+							'assoc_id' => '4',
 						),
 					),
 				),
@@ -838,6 +901,9 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '1',
 							'comment_id' => '5',
 						),
+						'EagerLoader' => array(
+							'assoc_id' => '5',
+						),
 					),
 				),
 				// $expectedResults
@@ -896,6 +962,9 @@ class EagerLoaderTest extends CakeTestCase {
 							'article_id' => '1',
 							'tag_id' => '1',
 						),
+						'EagerLoader' => array(
+							'assoc_id' => '1',
+						),
 					),
 					array(
 						'Tag' => array(
@@ -904,6 +973,9 @@ class EagerLoaderTest extends CakeTestCase {
 						'ArticlesTag' => array(
 							'article_id' => '1',
 							'tag_id' => '2',
+						),
+						'EagerLoader' => array(
+							'assoc_id' => '1',
 						),
 					),
 					array(
@@ -914,6 +986,9 @@ class EagerLoaderTest extends CakeTestCase {
 							'article_id' => '2',
 							'tag_id' => '1',
 						),
+						'EagerLoader' => array(
+							'assoc_id' => '2',
+						),
 					),
 					array(
 						'Tag' => array(
@@ -922,6 +997,9 @@ class EagerLoaderTest extends CakeTestCase {
 						'ArticlesTag' => array(
 							'article_id' => '2',
 							'tag_id' => '3',
+						),
+						'EagerLoader' => array(
+							'assoc_id' => '2',
 						),
 					),
 				),
@@ -973,7 +1051,107 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #4 belongsTo 
+				// {{{ #4 hasOne (finderQuery)
+				'Apple',
+				'NextApple',
+				// $meta
+				array(
+					'parentAlias' => 'Apple',
+					'parentKey' => 'id',
+					'targetKey' => 'apple_id',
+					'aliasPath' => 'Apple.NextApple',
+					'propertyPath' => 'Apple.NextApple',
+					'options' => array(),
+					'has' => true,
+					'belong' => false,
+					'many' => false,
+					'external' => true,
+				),
+				// $results
+				array(
+					array(
+						'Apple' => array(
+							'id' => '1',
+						),
+					),
+					array(
+						'Apple' => array(
+							'id' => '5',
+						),
+					),
+				),
+				// $fixtures
+				array('Apple'),
+				// $expectedArgument
+				array(
+					array(
+						'NextApple' => array(
+							'id' => '2',
+							'apple_id' => '1',
+							'color' => 'Bright Red 1',
+							'name' => 'Bright Red Apple',
+							'created' => '2006-11-22 10:43:13',
+							'date' => '2014-01-01',
+							'modified' => '2006-11-30 18:38:10',
+							'mytime' => '22:57:17'
+						),
+						'EagerLoader' => array(
+							'assoc_id' => '1',
+						),
+					),
+					array(
+						'NextApple' => array(
+							'id' => '6',
+							'apple_id' => 4,
+							'color' => 'My new appleOrange',
+							'name' => 'My new apple',
+							'created' => '2006-12-25 05:29:39',
+							'date' => '2006-12-25',
+							'modified' => '2006-12-25 05:29:39',
+							'mytime' => '22:57:17',
+						),
+						'EagerLoader' => array(
+							'assoc_id' => '5',
+						),
+					),
+				),
+				// $expectedResults
+				array(
+					array(
+						'Apple' => array(
+							'id' => '1',
+							'NextApple' => array(
+								'id' => '2',
+								'apple_id' => 1,
+								'color' => 'Bright Red 1',
+								'name' => 'Bright Red Apple',
+								'created' => '2006-11-22 10:43:13',
+								'date' => '2014-01-01',
+								'modified' => '2006-11-30 18:38:10',
+								'mytime' => '22:57:17'
+							),
+						),
+					),
+					array(
+						'Apple' => array(
+							'id' => '5',
+							'NextApple' => array(
+								'id' => '6',
+								'apple_id' => 4,
+								'color' => 'My new appleOrange',
+								'name' => 'My new apple',
+								'created' => '2006-12-25 05:29:39',
+								'date' => '2006-12-25',
+								'modified' => '2006-12-25 05:29:39',
+								'mytime' => '22:57:17',
+							),
+						),
+					),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #5 belongsTo
 				'Article',
 				'User',
 				// $meta
@@ -1057,7 +1235,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #5 hasOne
+				// {{{ #6 hasOne
 				'Comment',
 				'Attachment',
 				// $meta
