@@ -160,12 +160,13 @@ class EagerLoader extends Model {
 		$ids = array_unique($ids);
 
 		if (empty($options['limit']) && empty($options['offset'])) {
-			$options = $this->addConditions($options, array("$assocAlias.$assocKey" => $ids));
+			$options['conditions'][] = array("$assocAlias.$assocKey" => $ids);
 			$assocResults = $db->read($target, $options);
 		} else {
 			$assocResults = array();
 			foreach ($ids as $id) {
-				$eachOptions = $this->addConditions($options, array("$assocAlias.$assocKey" => $id));
+				$eachOptions = $options;
+				$eachOptions['conditions'][] = array("$assocAlias.$assocKey" => $id);
 				$assocResults = array_merge($assocResults, $db->read($target, $eachOptions));
 			}
 		}
@@ -306,7 +307,8 @@ class EagerLoader extends Model {
 
 		$query += array(
 			'fields' => array(),
-			'conditions' => array()
+			'conditions' => array(),
+			'order' => array()
 		);
 
 		if (!$query['fields']) {
@@ -324,10 +326,25 @@ class EagerLoader extends Model {
 		$query['conditions'] = (array)$query['conditions'];
 		foreach ($query['conditions'] as $key => $val) {
 			if ($model->hasField($key)) {
-				$query['conditions'][$model->alias . '.' . $key] = $val;
 				unset($query['conditions'][$key]);
+				$query['conditions'][] = array($model->alias . '.' . $key => $val);
 			}
 		}
+
+		$order = array();
+		foreach ((array)$query['order'] as $key => $val) {
+			if (is_int($key)) {
+				if ($model->hasField($val)) {
+					$val = $model->alias . '.' . $val;
+				}
+			} else {
+				if ($model->hasField($key)) {
+					$key = $model->alias . '.' . $key;
+				}
+			}
+			$order += array($key => $val);
+		}
+		$query['order'] = $order;
 
 		return $query;
 	}
@@ -348,14 +365,11 @@ class EagerLoader extends Model {
 		$options = $this->normalizeQuery($target, $options);
 		$query['fields'] = array_merge($query['fields'], $options['fields']);
 
-		$conditions = array();
 		foreach ($keys as $lhs => $rhs) {
 			$query = $this->addField($query, $lhs);
 			$query = $this->addField($query, $rhs);
-			$conditions[$lhs] = $db->identifier($rhs);
+			$options['conditions'][] = array($lhs => $db->identifier($rhs));
 		}
-
-		$options = $this->addConditions($options, $conditions);
 
 		$query['joins'][] = array(
 			'type' => $joinType,
@@ -376,22 +390,6 @@ class EagerLoader extends Model {
 	private function addField(array $query, $field) { // @codingStandardsIgnoreLine
 		if (!in_array($field, $query['fields'], true)) {
 			$query['fields'][] = $field;
-		}
-		return $query;
-	}
-
-/**
- * Adds conditions into the `conditions` option of the query
- *
- * @param array $query Query
- * @param array $conditions Conditions
- * @return Modified query
- */
-	private function addConditions(array $query, array $conditions) { // @codingStandardsIgnoreLine
-		if ($query['conditions']) {
-			$query['conditions'] = array('AND' => array($query['conditions'], $conditions));
-		} else {
-			$query['conditions'] = $conditions;
 		}
 		return $query;
 	}

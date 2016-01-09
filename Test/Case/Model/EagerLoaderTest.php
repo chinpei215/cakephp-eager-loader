@@ -176,7 +176,7 @@ class EagerLoaderTest extends CakeTestCase {
 			array('Article.user_id' => 'User.id'),
 			array(
 				'conditions' => array(
-					'Article.user_id' => array(1, 2, 3),
+					array('Article.user_id' => array(1, 2, 3)),
 				)
 			)
 		));
@@ -197,10 +197,8 @@ class EagerLoaderTest extends CakeTestCase {
 					'table' => $db->fullTableName($User),
 					'alias' => 'User',
 					'conditions' => array(
-						'AND' => array(
-							array('Article.user_id' => array(1, 2, 3)),
-							array('Article.user_id' => (object)array('type' => 'identifier', 'value' => 'User.id')),
-						),
+						array('Article.user_id' => array(1, 2, 3)),
+						array('Article.user_id' => (object)array('type' => 'identifier', 'value' => 'User.id')),
 					),
 				),
 			)
@@ -535,6 +533,7 @@ class EagerLoaderTest extends CakeTestCase {
 						'User.updated',
 					),
 					'conditions' => array(),
+					'order' => array(),
 				),
 				// }}}
 			),
@@ -547,6 +546,7 @@ class EagerLoaderTest extends CakeTestCase {
 				array(
 					'fields' => array('User.id'),
 					'conditions' => array('1 = 1'),
+					'order' => array(),
 				),
 				// }}}
 			),
@@ -569,7 +569,33 @@ class EagerLoaderTest extends CakeTestCase {
 						'User.password',
 					),
 					'conditions' => array(
-						'User.user' => 'larry',
+						array('User.user' => 'larry'),
+					),
+					'order' => array(),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #3
+				array(
+					'fields' => 'id',
+					'conditions' => array(),
+					'order' => array(
+						'id' => 'ASC',
+						'User.id' => 'DESC',
+						'created' => 'DESC',
+						'updated',
+					),
+				),
+				array(
+					'fields' => array(
+						'User.id',
+					),
+					'conditions' => array(),
+					'order' => array(
+						'User.id' => 'ASC',
+						'User.created' => 'DESC',
+						'User.updated',
 					),
 				),
 				// }}}
