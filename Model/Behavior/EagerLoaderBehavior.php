@@ -12,9 +12,13 @@ class EagerLoaderBehavior extends ModelBehavior {
  * @return array
  */
 	public function beforeFind(Model $model, $query) {
-		if (!empty($query['contain'])) {
-			$EagerLoader = ClassRegistry::init('EagerLoader.EagerLoader');
-			$query = $EagerLoader->transformQuery($model, $query);
+		if (isset($query['contain'])) {
+			if ($query['contain'] === false) {
+				$query['recursive'] = -1;
+			} else {
+				$EagerLoader = ClassRegistry::init('EagerLoader.EagerLoader');
+				$query = $EagerLoader->transformQuery($model, $query);
+			}
 		}
 		return $query;
 	}

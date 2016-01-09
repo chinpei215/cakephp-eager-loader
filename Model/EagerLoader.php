@@ -39,11 +39,7 @@ class EagerLoader extends Model {
 
 		$contain = $this->reformatContain($query['contain']);
 		foreach ($contain['contain'] as $key => $val) {
-			$this->parseContain($model, $key, $val, array(
-				'root' => $model->alias,
-				'aliasPath' => $model->alias,
-				'propertyPath' => '',
-			));
+			$this->parseContain($model, $key, $val);
 		}
 
 		$db = $model->getDataSource();
@@ -416,16 +412,23 @@ class EagerLoader extends Model {
  * @param Model $parent Parent model of the contained model
  * @param string $alias Alias of the contained model
  * @param array $contain Reformatted `contain` option for the deep associations
- * @param array $paths Path information of the root model, etc.
- * @param bool $forceExternal Force external
+ * @param array|null $context Context
  * @return array
  * @throws InvalidArgumentException
  */
-	private function parseContain(Model $parent, $alias, array $contain, array $paths, $forceExternal = false) { // @codingStandardsIgnoreLine
+	private function parseContain(Model $parent, $alias, array $contain, $context = null) { // @codingStandardsIgnoreLine
+		if ($context === null) {
+			$context = array(
+				'root' => $parent->alias,
+				'aliasPath' => $parent->alias,
+				'propertyPath' => '',
+				'forceExternal' => false,
+			);
+		}
 		$map =& $this->settings[$this->id];
 
-		$aliasPath = $paths['aliasPath'] . '.' . $alias;
-		$propertyPath = ($paths['propertyPath'] ? $paths['propertyPath'] . '.' : '') . $alias;
+		$aliasPath = $context['aliasPath'] . '.' . $alias;
+		$propertyPath = ($context['propertyPath'] ? $context['propertyPath'] . '.' : '') . $alias;
 
 		$types = $parent->getAssociated();
 		if (!isset($types[$alias])) {
@@ -463,35 +466,67 @@ class EagerLoader extends Model {
 			$finderQuery = $relation['finderQuery'];
 		}
 
-		$external = $forceExternal || $many || !empty($finderQuery) || !empty($options['limit']) || !empty($options['offset']);
-		if (!$external) {
-			$tmp = explode('.', $paths['root']);
-			$rootAlias = end($tmp);
-			$external = $alias === $rootAlias;
-		}
-
-		if ($external) {
-			$paths['root'] = $aliasPath;
-			$paths['propertyPath'] = $alias;
-			$path = $paths['aliasPath'];
-		} else {
-			$paths['propertyPath'] = $propertyPath;
-			$path = $paths['root'];
-		}
-
-		$map[$path][$alias] = compact(
+		$meta = compact(
 			'parent', 'target',
 			'parentAlias', 'parentKey',
 			'targetKey', 'aliasPath', 'propertyPath',
-			'options', 'has', 'many', 'belong', 'external', 'finderQuery',
+			'options', 'has', 'many', 'belong', 'finderQuery',
 			'habtm', 'habtmAlias', 'habtmParentKey', 'habtmTargetKey'
 		);
 
-		$paths['aliasPath'] = $aliasPath;
+		if ($this->isExternal($context, $meta)) {
+			$meta['external'] = true;
+			$context['root'] = $aliasPath;
+			$context['propertyPath'] = $alias;
+			$path = $context['aliasPath'];
+		} else {
+			$meta['external'] = false;
+			$context['propertyPath'] = $propertyPath;
+			$path = $context['root'];
+		}
+
+		$map[$path][$alias] = $meta;
+
+		$context['aliasPath'] = $aliasPath;
+		$context['forceExternal'] = !empty($finderQuery);
+
 		foreach ($contain['contain'] as $key => $val) {
-			$this->parseContain($target, $key, $val, $paths, !empty($finderQuery));
+			$this->parseContain($target, $key, $val, $context);
 		}
 
 		return $map;
+	}
+
+/**
+ * Returns whether the target is external or not
+ *
+ * @param array $context Context
+ * @param array $meta Meta data to be used for eager loading
+ * @return bool
+ */
+	private function isExternal(array $context, array $meta) { // @codingStandardsIgnoreLine
+		extract($meta);
+
+		if ($parent->useDbConfig !== $target->useDbConfig) {
+			return true;
+		} elseif ($many) {
+			return true;
+		} elseif (!empty($finderQuery)) {
+			return true;
+		} elseif (!empty($options['offset'])) {
+			return true;
+		} elseif (!empty($options['limit'])) {
+			return true;
+		} elseif ($context['forceExternal']) {
+			return true;
+		} else {
+			$tmp = explode('.', $context['root']);
+			$rootAlias = end($tmp);
+			if ($target->alias === $rootAlias) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

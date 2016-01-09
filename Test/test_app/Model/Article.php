@@ -4,7 +4,7 @@
  */
 class Article extends AppModel {
 
-	public $hasMany = array('Comment');
+	public $hasMany = array('Comment', 'ExternalComment');
 
 	public $hasOne = array(
 		'FirstComment' => array(

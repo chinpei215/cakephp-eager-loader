@@ -228,16 +228,7 @@ class EagerLoaderTest extends CakeTestCase {
 		$method = new ReflectionMethod('EagerLoader', 'parseContain');
 		$method->setAccessible(true);
 
-		$result = $method->invokeArgs($this->EagerLoader, array(
-			$model,
-			$alias,
-			$contain,
-			array(
-				'root' => $model->alias,
-				'aliasPath' => $model->alias,
-				'propertyPath' => '',
-			)
-		));
+		$result = $method->invokeArgs($this->EagerLoader, array($model, $alias, $contain));
 
 		// Remove something
 		$result = Hash::remove($result, '{s}.{s}.target');
@@ -389,7 +380,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #2 duplication
+				// {{{ #2 HABTM
 				'Article',
 				'Tag',
 				array(
@@ -505,6 +496,48 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				// }}}
 			),
+			array(
+				// {{{ #4 duplication
+				'Comment',
+				'Attachment',
+				array(
+					'options' => array(),
+					'contain' => array(
+						'Comment' => array('options' => array(), 'contain' => array()),
+					)
+				),
+				array(
+					'Comment' => array(
+						'Attachment' => array(
+							'parentAlias' => 'Comment',
+							'parentKey' => 'id',
+							'targetKey' => 'comment_id',
+							'aliasPath' => 'Comment.Attachment',
+							'propertyPath' => 'Attachment',
+							'options' => array(),
+							'has' => true,
+							'belong' => false,
+							'many' => false,
+							'external' => false,
+						),
+					),
+					'Comment.Attachment' => array(
+						'Comment' => array(
+							'parentAlias' => 'Attachment',
+							'parentKey' => 'comment_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Comment.Attachment.Comment',
+							'propertyPath' => 'Attachment.Comment',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => true,
+						),
+					),
+				),
+				// }}}
+			),
 		);
 	}
 
@@ -550,10 +583,7 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$method = new ReflectionMethod('EagerLoader', 'normalizeQuery');
 		$method->setAccessible(true);
-		$result = $method->invokeArgs($this->EagerLoader, array(
-			$User,
-			$query,
-		));
+		$result = $method->invokeArgs($this->EagerLoader, array($User, $query));
 
 		$this->assertEquals($expected, $result);
 	}

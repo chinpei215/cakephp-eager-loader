@@ -22,8 +22,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		'core.attachment',
 		'core.tag',
 		'core.articles_tag',
-		'core.something',
-		'core.join_thing',
+		'plugin.EagerLoader.external_comment',
 	);
 
 /**
@@ -465,7 +464,6 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				),
 				// }}}
 			),
-
 		);
 	}
 
@@ -637,5 +635,50 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		));
 
 		$this->assertSame(array(), $user);
+	}
+
+/**
+ * Tests no contain
+ *
+ * @return void
+ */
+	public function testNoContain() {
+		$this->loadFixtures('User', 'Article');
+		$User = ClassRegistry::init('User');
+		$result = $User->find('first', array('contain' => false));
+		$this->assertFalse(isset($result['Article']));
+	}
+
+/**
+ * Tests external datasource
+ *
+ * @return void
+ */
+	public function testExternalDatasource() {
+		$this->loadFixtures('Article', 'ExternalComment');
+
+		$Article = ClassRegistry::init('Article');
+
+		$result = $Article->find('first', array(
+			'fields' => 'id',
+			'contain' => 'ExternalComment',
+			'conditions' => array('id' => 3),
+		));
+
+		$expected = array(
+			'Article' => array(
+				'id' => 3,
+			),
+			'ExternalComment' => array(
+				array(
+					'id' => 1,
+					'article_id' => 3,
+					'comment' => 'External Comment',
+				),
+			)
+		);
+
+		$this->assertFalse($Article->useDbConfig === $Article->ExternalComment->useDbConfig);
+		$this->assertEquals($expected, $result);
 	}
 }
