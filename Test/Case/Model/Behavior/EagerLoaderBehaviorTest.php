@@ -52,7 +52,17 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		$log = $db->getLog();
 		$after = $log['count'];
 
-		$this->assertEquals($expectedQueryCount, $after - $before);
+		$count = $after - $before;
+
+		if ($db instanceof Sqlite) {
+			foreach ($log['log'] as $log) {
+				if (strpos($log['query'], 'sqlite_master') !== false) {
+					--$count;
+				}
+			}
+		}
+
+		$this->assertEquals($expectedQueryCount, $count);
 		$this->assertEquals($expectedResults, $results);
 	}
 

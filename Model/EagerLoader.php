@@ -46,8 +46,12 @@ class EagerLoader extends Model {
 			));
 		}
 
+		$db = $model->getDataSource();
+		$value = $db->value($this->id);
+		$name = $db->name('EagerLoader__id');
+
 		$query = $this->attachAssociations($model, $model->alias, $query);
-		$query['fields'] = array_merge($query['fields'], array('(' . $this->id . ') AS EagerLoader__id'));
+		$query['fields'] = array_merge($query['fields'], array("($value) AS $name"));
 
 		return $query;
 	}
@@ -144,6 +148,10 @@ class EagerLoader extends Model {
 			$options = $this->buildJoinQuery($habtm, $options, 'INNER', array(
 				"$alias.$targetKey" => "$habtmAlias.$habtmTargetKey",
 			), $options);
+
+			$options['order'][] = "$habtmAlias.{$habtm->primaryKey}";
+		} elseif ($has) {
+			$options['order'][] = "$alias.{$target->primaryKey}";
 		}
 
 		$options = $this->addField($options, "$assocAlias.$assocKey");
