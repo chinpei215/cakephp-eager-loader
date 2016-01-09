@@ -553,13 +553,13 @@ class EagerLoaderTest extends CakeTestCase {
 /**
  * Tests mergeExternalExternal method
  *
- * @param string $parent
- * @param string $target
- * @param array $meta
- * @param array $results
- * @param array $fixtures
- * @param array $expectedArgument
- * @param array $expectedResults
+ * @param string $parent Name of the parent model
+ * @param string $target Name of the target model
+ * @param array $meta Meta data to be used for eager loading
+ * @param array $results Results
+ * @param array $fixtures Fixtures to be used
+ * @param array $expectedArgument Expected argument for loadExternal method
+ * @param array $expectedResults Expected results
  * @return void
  *
  * @dataProvider dataProviderForTestMergeExternalExternal
@@ -979,7 +979,7 @@ class EagerLoaderTest extends CakeTestCase {
 			->method('loadExternal')
 			->with(
 				// {{{
-				'Article.User', 
+				'Article.User',
 				array(
 					array(
 						'User' => array(

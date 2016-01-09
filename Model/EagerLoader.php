@@ -123,12 +123,12 @@ class EagerLoader extends Model {
 /**
  * Merges results of external associations of an external association
  *
- * @param array $results
- * @param string $alias
- * @param array $meta
+ * @param array $results Results
+ * @param string $alias Name of the target model
+ * @param array $meta Meta data to be used for eager loading
  * @return array
  */
-	private function mergeExternalExternal(array $results, $alias, array $meta) {
+	private function mergeExternalExternal(array $results, $alias, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
 		$assocAlias = $alias;
@@ -191,12 +191,12 @@ class EagerLoader extends Model {
 /**
  * Merges results of external associations of an internal association
  *
- * @param array $results
- * @param string $alias
- * @param array $meta
+ * @param array $results Results
+ * @param string $alias Name of the target model
+ * @param array $meta Meta data to be used for eager loading
  * @return array
  */
-	private function mergeInternalExternal(array $results, $alias, array $meta) {
+	private function mergeInternalExternal(array $results, $alias, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
 		foreach ($results as $n => &$result) {
@@ -219,12 +219,12 @@ class EagerLoader extends Model {
 /**
  * Merges associated result
  *
- * @param array $result
- * @param array $assocResult
- * @param string $propertyPath
- * @return 
+ * @param array $result Results
+ * @param array $assoc Associated results
+ * @param string $propertyPath Path of the results
+ * @return array
  */
-	private function mergeAssocResult($result, $assoc, $propertyPath) {
+	private function mergeAssocResult($result, $assoc, $propertyPath) { // @codingStandardsIgnoreLine
 		return Hash::insert($result, $propertyPath, $assoc + (array)Hash::get($result, $propertyPath));
 	}
 
@@ -355,7 +355,7 @@ class EagerLoader extends Model {
  * @param array $conditions Conditions
  * @return Modified query
  */
-	private function addConditions(array $query, array $conditions) {
+	private function addConditions(array $query, array $conditions) { // @codingStandardsIgnoreLine
 		if ($query['conditions']) {
 			$query['conditions'] = array('AND' => array($query['conditions'], $conditions));
 		} else {
