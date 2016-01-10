@@ -9,7 +9,11 @@ class Apple extends AppModel {
 	);
 
 /**
- * {@inheritDoc}
+ * Constructor
+ *
+ * @param mixed $id ID
+ * @param string $table Table
+ * @param string $ds DataSource
  */
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
@@ -31,7 +35,7 @@ class Apple extends AppModel {
 
 		return $db->buildStatement(
 			array(
-				'fields' => $db->fields($this, 'NextApple'),
+				'fields' => $db->fields($this, 'NextApple', array('id', 'apple_id', 'name', 'color', 'created', 'modified')),
 				'alias' => 'NextApple',
 				'table' => $db->fullTableName($this),
 				'conditions' => array(

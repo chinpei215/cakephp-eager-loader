@@ -35,116 +35,29 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
  * @param array $expectedResults Expected results
  * @return void
  *
- * @dataProvider dataProviderForTestEagerLoad
+ * @dataProvider dataProviderForTestFindAll
  */
-	public function testEagerLoad($model, $options, $fixtures, $expectedQueryCount, $expectedResults) {
+	public function testFindAll($model, $options, $fixtures, $expectedQueryCount, $expectedResults) {
 		call_user_func_array(array($this, 'loadFixtures'), $fixtures);
 
 		$model = ClassRegistry::init($model);
-		$db = $model->getDataSource();
-
-		$log = $db->getLog();
-		$before = $log['count'];
+		$model->Behaviors->load('QueryCounter');
 
 		$results = $model->find('all', $options);
 
-		$log = $db->getLog();
-		$after = $log['count'];
-
-		$count = $after - $before;
-
-		if ($db instanceof Sqlite) {
-			foreach ($log['log'] as $log) {
-				if (strpos($log['query'], 'sqlite_master') !== false) {
-					--$count;
-				}
-			}
-		}
-
-		$this->assertEquals($expectedQueryCount, $count);
+		$this->assertEquals($expectedQueryCount, $model->queryCount());
 		$this->assertEquals($expectedResults, $results);
 	}
 
 /**
- * Data provider for testEagerLoad
+ * Data provider for testFindAll
  *
  * @return array
  */
-	public function dataProviderForTestEagerLoad() {
+	public function dataProviderForTestFindAll() {
 		return array(
 			array(
 				// {{{ #0
-				'Article',
-				array(
-					'contain' => array('User', 'Comment'),
-				),
-				array('Article', 'User', 'Comment'),
-				2,
-				array(
-					array(
-						'Article' => array(
-							'id' => 1, 'user_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body',
-							'published' => 'Y', 'created' => '2007-03-18 10:39:23', 'updated' => '2007-03-18 10:41:31'
-						),
-						'User' => array(
-							'id' => 1, 'user' => 'mariano', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
-							'created' => '2007-03-17 01:16:23', 'updated' => '2007-03-17 01:18:31'
-						),
-						'Comment' => array(
-							array(
-								'id' => 1, 'article_id' => 1, 'user_id' => 2, 'comment' => 'First Comment for First Article',
-								'published' => 'Y', 'created' => '2007-03-18 10:45:23', 'updated' => '2007-03-18 10:47:31'
-							),
-							array(
-								'id' => 2, 'article_id' => 1, 'user_id' => 4, 'comment' => 'Second Comment for First Article',
-								'published' => 'Y', 'created' => '2007-03-18 10:47:23', 'updated' => '2007-03-18 10:49:31'
-							),
-							array(
-								'id' => 3, 'article_id' => 1, 'user_id' => 1, 'comment' => 'Third Comment for First Article',
-								'published' => 'Y', 'created' => '2007-03-18 10:49:23', 'updated' => '2007-03-18 10:51:31'
-							),
-							array(
-								'id' => 4, 'article_id' => 1, 'user_id' => 1, 'comment' => 'Fourth Comment for First Article',
-								'published' => 'N', 'created' => '2007-03-18 10:51:23', 'updated' => '2007-03-18 10:53:31'
-							)
-						)
-					),
-					array(
-						'Article' => array(
-							'id' => 2, 'user_id' => 3, 'title' => 'Second Article', 'body' => 'Second Article Body',
-							'published' => 'Y', 'created' => '2007-03-18 10:41:23', 'updated' => '2007-03-18 10:43:31'
-						),
-						'User' => array(
-							'id' => 3, 'user' => 'larry', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
-							'created' => '2007-03-17 01:20:23', 'updated' => '2007-03-17 01:22:31'
-						),
-						'Comment' => array(
-							array(
-								'id' => 5, 'article_id' => 2, 'user_id' => 1, 'comment' => 'First Comment for Second Article',
-								'published' => 'Y', 'created' => '2007-03-18 10:53:23', 'updated' => '2007-03-18 10:55:31'
-							),
-							array(
-								'id' => 6, 'article_id' => 2, 'user_id' => 2, 'comment' => 'Second Comment for Second Article',
-								'published' => 'Y', 'created' => '2007-03-18 10:55:23', 'updated' => '2007-03-18 10:57:31'
-							)
-						)
-					),
-					array(
-						'Article' => array(
-							'id' => 3, 'user_id' => 1, 'title' => 'Third Article', 'body' => 'Third Article Body',
-							'published' => 'Y', 'created' => '2007-03-18 10:43:23', 'updated' => '2007-03-18 10:45:31'
-						),
-						'User' => array(
-							'id' => 1, 'user' => 'mariano', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
-							'created' => '2007-03-17 01:16:23', 'updated' => '2007-03-17 01:18:31'
-						),
-						'Comment' => array()
-					)
-				)
-				// }}}
-			),
-			array(
-				// {{{ #1
 				'Attachment',
 				array(
 					'fields' => 'Attachment.id',
@@ -178,7 +91,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #2
+				// {{{ #1
 				'Article',
 				array(
 					'fields' => array('Article.id'),
@@ -186,6 +99,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 						'User' => array('fields' => 'User.id'),
 						'Comment' => array(
 							'fields' => 'Comment.id',
+							'order' => 'Comment.id',
 							'User' => array('fields' => 'User.id'),
 						),
 					),
@@ -277,7 +191,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #3
+				// {{{ #2
 				'User',
 				array(
 					'fields' => array('User.user'),
@@ -335,7 +249,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #4
+				// {{{ #3
 				'Article',
 				array(
 					'fields' => 'Article.id',
@@ -378,7 +292,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #5
+				// {{{ #4
 				'User',
 				array(
 					'fields' => 'User.id',
@@ -416,7 +330,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #6
+				// {{{ #5
 				'Article',
 				array(
 					'fields' => 'Article.id',
@@ -465,6 +379,29 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				// }}}
 			),
 		);
+	}
+
+/**
+ * Tests that find('list') also works
+ *
+ * @return void
+ */
+	public function testFindList() {
+		$this->loadFixtures('Article', 'User');
+
+		$Article = ClassRegistry::init('Article');
+		$result = $Article->find('list', array(
+			'fields' => array('Article.id', 'User.id'),
+			'contain' => array('User')
+		));
+
+		$expected = array(
+			1 => 1,
+			2 => 3,
+			3 => 1,
+		);
+
+		$this->assertEquals($expected, $result);
 	}
 
 /**
@@ -680,5 +617,122 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 
 		$this->assertFalse($Article->useDbConfig === $Article->ExternalComment->useDbConfig);
 		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * Tests that EagerLoaderBehavior can be coexistent with ContainableBehavior
+ *
+ * @return void
+ */
+	public function testCoexistentWithContainableBehavior() {
+		$this->loadFixtures('Comment', 'Article', 'User');
+
+		$expected = array(
+			// {{{
+			array(
+				'Comment' => array(
+					'id' => 1, 'article_id' => 1, 'user_id' => 2, 'comment' => 'First Comment for First Article',
+					'published' => 'Y', 'created' => '2007-03-18 10:45:23', 'updated' => '2007-03-18 10:47:31'
+				),
+				'Article' => array(
+					'id' => 1, 'user_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body',
+					'published' => 'Y', 'created' => '2007-03-18 10:39:23', 'updated' => '2007-03-18 10:41:31',
+					'User' => array(
+						'id' => 1, 'user' => 'mariano', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+						'created' => '2007-03-17 01:16:23', 'updated' => '2007-03-17 01:18:31'
+					),
+				),
+			),
+			array(
+				'Comment' => array(
+					'id' => 2, 'article_id' => 1, 'user_id' => 4, 'comment' => 'Second Comment for First Article',
+					'published' => 'Y', 'created' => '2007-03-18 10:47:23', 'updated' => '2007-03-18 10:49:31'
+				),
+				'Article' => array(
+					'id' => 1, 'user_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body',
+					'published' => 'Y', 'created' => '2007-03-18 10:39:23', 'updated' => '2007-03-18 10:41:31',
+					'User' => array(
+						'id' => 1, 'user' => 'mariano', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+						'created' => '2007-03-17 01:16:23', 'updated' => '2007-03-17 01:18:31'
+					),
+				),
+			),
+			array(
+				'Comment' => array(
+					'id' => 3, 'article_id' => 1, 'user_id' => 1, 'comment' => 'Third Comment for First Article',
+					'published' => 'Y', 'created' => '2007-03-18 10:49:23', 'updated' => '2007-03-18 10:51:31'
+				),
+				'Article' => array(
+					'id' => 1, 'user_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body',
+					'published' => 'Y', 'created' => '2007-03-18 10:39:23', 'updated' => '2007-03-18 10:41:31',
+					'User' => array(
+						'id' => 1, 'user' => 'mariano', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+						'created' => '2007-03-17 01:16:23', 'updated' => '2007-03-17 01:18:31'
+					),
+				),
+			),
+			array(
+				'Comment' => array(
+					'id' => 4, 'article_id' => 1, 'user_id' => 1, 'comment' => 'Fourth Comment for First Article',
+					'published' => 'N', 'created' => '2007-03-18 10:51:23', 'updated' => '2007-03-18 10:53:31'
+				),
+				'Article' => array(
+					'id' => 1, 'user_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body',
+					'published' => 'Y', 'created' => '2007-03-18 10:39:23', 'updated' => '2007-03-18 10:41:31',
+					'User' => array(
+						'id' => 1, 'user' => 'mariano', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+						'created' => '2007-03-17 01:16:23', 'updated' => '2007-03-17 01:18:31'
+					),
+				),
+			),
+			array(
+				'Comment' => array(
+					'id' => 5, 'article_id' => 2, 'user_id' => 1, 'comment' => 'First Comment for Second Article',
+					'published' => 'Y', 'created' => '2007-03-18 10:53:23', 'updated' => '2007-03-18 10:55:31'
+				),
+				'Article' => array(
+					'id' => 2, 'user_id' => 3, 'title' => 'Second Article', 'body' => 'Second Article Body',
+					'published' => 'Y', 'created' => '2007-03-18 10:41:23', 'updated' => '2007-03-18 10:43:31',
+					'User' => array(
+						'id' => 3, 'user' => 'larry', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+						'created' => '2007-03-17 01:20:23', 'updated' => '2007-03-17 01:22:31'
+					),
+				),
+			),
+			array(
+				'Comment' => array(
+					'id' => 6, 'article_id' => 2, 'user_id' => 2, 'comment' => 'Second Comment for Second Article',
+					'published' => 'Y', 'created' => '2007-03-18 10:55:23', 'updated' => '2007-03-18 10:57:31'
+				),
+				'Article' => array(
+					'id' => 2, 'user_id' => 3, 'title' => 'Second Article', 'body' => 'Second Article Body',
+					'published' => 'Y', 'created' => '2007-03-18 10:41:23', 'updated' => '2007-03-18 10:43:31',
+					'User' => array(
+						'id' => 3, 'user' => 'larry', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+						'created' => '2007-03-17 01:20:23', 'updated' => '2007-03-17 01:22:31'
+					),
+				),
+			),
+			// }}}
+		);
+
+		$options = array('contain' => 'Article.User');
+
+		$Comment = ClassRegistry::init('Comment');
+		$Comment->Behaviors->load('QueryCounter');
+
+		$results = $Comment->find('all', $options);
+		$this->assertEquals(1, $Comment->queryCount());
+		$this->assertEquals($expected, $results);
+
+		$Comment->Behaviors->load('Containable');
+		$results = $Comment->find('all', $options);
+		$this->assertEquals(1, $Comment->queryCount());
+		$this->assertEquals($expected, $results);
+
+		$Comment->Behaviors->disable('EagerLoader.EagerLoader');
+		$results = $Comment->find('all', $options);
+		$this->assertEquals(7, $Comment->queryCount()); // ContainableBehavior cannot load deep associations eagerly
+		$this->assertEquals($expected, $results);
 	}
 }

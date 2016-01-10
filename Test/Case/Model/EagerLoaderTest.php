@@ -290,7 +290,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #1 limit
+				// {{{ #1 options
 				'User',
 				'Article',
 				array(
@@ -428,7 +428,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #3 association (limit/offset)
+				// {{{ #3 association (external)
 				'Article',
 				'SecondComment',
 				array('options' => array(), 'contain' => array()),
@@ -441,7 +441,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'aliasPath' => 'Article.SecondComment',
 							'propertyPath' => 'SecondComment',
 							'options' => array(
-								'order' => array('SecondComment.id'),
+								'order' => 'SecondComment.id',
 								'limit' => 1,
 								'offset' => 1,
 							),
@@ -958,7 +958,7 @@ class EagerLoaderTest extends CakeTestCase {
 				array(
 					'parentKey' => 'id',
 					'targetKey' => 'id',
-					'options' => array('fields' => 'id'),
+					'options' => array('fields' => 'id', 'order' => array('ArticlesTag.article_id')),
 					'habtmAlias' => 'ArticlesTag',
 					'habtmParentKey' => 'article_id',
 					'habtmTargetKey' => 'tag_id',
@@ -1121,9 +1121,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'color' => 'Bright Red 1',
 							'name' => 'Bright Red Apple',
 							'created' => '2006-11-22 10:43:13',
-							'date' => '2014-01-01',
 							'modified' => '2006-11-30 18:38:10',
-							'mytime' => '22:57:17'
 						),
 						'EagerLoader' => array(
 							'assoc_id' => '1',
@@ -1136,9 +1134,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'color' => 'My new appleOrange',
 							'name' => 'My new apple',
 							'created' => '2006-12-25 05:29:39',
-							'date' => '2006-12-25',
 							'modified' => '2006-12-25 05:29:39',
-							'mytime' => '22:57:17',
 						),
 						'EagerLoader' => array(
 							'assoc_id' => '5',
@@ -1156,9 +1152,7 @@ class EagerLoaderTest extends CakeTestCase {
 								'color' => 'Bright Red 1',
 								'name' => 'Bright Red Apple',
 								'created' => '2006-11-22 10:43:13',
-								'date' => '2014-01-01',
 								'modified' => '2006-11-30 18:38:10',
-								'mytime' => '22:57:17'
 							),
 						),
 					),
@@ -1171,9 +1165,7 @@ class EagerLoaderTest extends CakeTestCase {
 								'color' => 'My new appleOrange',
 								'name' => 'My new apple',
 								'created' => '2006-12-25 05:29:39',
-								'date' => '2006-12-25',
 								'modified' => '2006-12-25 05:29:39',
-								'mytime' => '22:57:17',
 							),
 						),
 					),

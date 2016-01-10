@@ -17,6 +17,7 @@ class Article extends AppModel {
 			'limit' => 1,
 			'offset' => 1,
 			'order' => 'SecondComment.id',
+			'external' => true,
 		),
 	);
 

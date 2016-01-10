@@ -14,6 +14,7 @@ class EagerLoader extends Model {
 		'fields' => 1,
 		'order' => 1,
 		'limit' => 1,
+		'offset' => 1,
 	);
 
 /**
@@ -145,10 +146,6 @@ class EagerLoader extends Model {
 			$options = $this->buildJoinQuery($habtm, $options, 'INNER', array(
 				"$alias.$targetKey" => "$habtmAlias.$habtmTargetKey",
 			), $options);
-
-			$options['order'][] = "$habtmAlias.{$habtm->primaryKey}";
-		} elseif ($has) {
-			$options['order'][] = "$alias.{$target->primaryKey}";
 		}
 
 		$options = $this->addField($options, "$assocAlias.$assocKey");
@@ -164,11 +161,7 @@ class EagerLoader extends Model {
 				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.{$this->alias}.assoc_id", $id);
 				$assocResults = array_merge($assocResults, $eachAssocResults);
 			}
-		} elseif (empty($options['limit']) && empty($options['offset'])) {
-			$options['fields'][] = "($assocAlias.$assocKey) AS " . $db->name($this->alias . '__' . 'assoc_id');
-			$options['conditions'][] = array("$assocAlias.$assocKey" => $ids);
-			$assocResults = $db->read($target, $options);
-		} else {
+		} elseif ($this->hasLimitOffset($options)) {
 			$assocResults = array();
 			foreach ($ids as $id) {
 				$eachOptions = $options;
@@ -177,6 +170,10 @@ class EagerLoader extends Model {
 				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.{$this->alias}.assoc_id", $id);
 				$assocResults = array_merge($assocResults, $eachAssocResults);
 			}
+		} else {
+			$options['fields'][] = "($assocAlias.$assocKey) AS " . $db->name($this->alias . '__' . 'assoc_id');
+			$options['conditions'][] = array("$assocAlias.$assocKey" => $ids);
+			$assocResults = $db->read($target, $options);
 		}
 
 		// Triggers afterFind for the external primary model.
@@ -250,31 +247,7 @@ class EagerLoader extends Model {
 	}
 
 /**
- * Merges options of association
- *
- * @param array $options Options
- * @param string $relation Relation
- * @return array
- */
-	private function mergeAssocOptions(array $options, array $relation) { // @codingStandardsIgnoreLine
-		if (!empty($relation['order'])) {
-			$options += array('order' => null);
-			$options['order'] = array_merge((array)$options['order'], (array)$relation['order']);
-		}
-
-		if (!empty($relation['limit'])) {
-			$options += array('limit' => $relation['limit']);
-		}
-
-		if (!empty($relation['offset'])) {
-			$options += array('offset' => $relation['offset']);
-		}
-
-		return $options;
-	}
-
-/**
- * Reformat `contain` array  
+ * Reformat `contain` array
  *
  * @param array|string $contain The value of `contain` option of the query
  * @return array
@@ -423,6 +396,7 @@ class EagerLoader extends Model {
 				'aliasPath' => $parent->alias,
 				'propertyPath' => '',
 				'forceExternal' => false,
+				'aliases' => array($parent->alias => 1)
 			);
 		}
 		$map =& $this->settings[$this->id];
@@ -439,9 +413,8 @@ class EagerLoader extends Model {
 		$target = $parent->$alias;
 		$type = $types[$alias];
 		$relation = $parent->{$type}[$alias];
-		$options = $contain['options'];
 
-		$options = $this->mergeAssocOptions($options, $relation);
+		$options = $contain['options'] + array_intersect_key(Hash::filter($relation), $this->containOptions);
 
 		$has = (stripos($type, 'has') !== false);
 		$many = (stripos($type, 'many') !== false);
@@ -462,6 +435,10 @@ class EagerLoader extends Model {
 			$targetKey = $target->primaryKey;
 		}
 
+		if (!empty($relation['external'])) {
+			$external = true;
+		}
+
 		if (!empty($relation['finderQuery'])) {
 			$finderQuery = $relation['finderQuery'];
 		}
@@ -470,7 +447,7 @@ class EagerLoader extends Model {
 			'parent', 'target',
 			'parentAlias', 'parentKey',
 			'targetKey', 'aliasPath', 'propertyPath',
-			'options', 'has', 'many', 'belong', 'finderQuery',
+			'options', 'has', 'many', 'belong', 'external', 'finderQuery',
 			'habtm', 'habtmAlias', 'habtmParentKey', 'habtmTargetKey'
 		);
 
@@ -478,10 +455,12 @@ class EagerLoader extends Model {
 			$meta['external'] = true;
 			$context['root'] = $aliasPath;
 			$context['propertyPath'] = $alias;
+			$context['aliases'] = array($alias => 1);
 			$path = $context['aliasPath'];
 		} else {
 			$meta['external'] = false;
 			$context['propertyPath'] = $propertyPath;
+			$context['aliases'][$alias] = 1;
 			$path = $context['root'];
 		}
 
@@ -509,24 +488,30 @@ class EagerLoader extends Model {
 
 		if ($parent->useDbConfig !== $target->useDbConfig) {
 			return true;
-		} elseif ($many) {
+		} elseif (!empty($external)) {
+			return true;
+		} elseif (!empty($many)) {
 			return true;
 		} elseif (!empty($finderQuery)) {
 			return true;
-		} elseif (!empty($options['offset'])) {
-			return true;
-		} elseif (!empty($options['limit'])) {
+		} elseif ($this->hasLimitOffset($options)) {
 			return true;
 		} elseif ($context['forceExternal']) {
 			return true;
-		} else {
-			$tmp = explode('.', $context['root']);
-			$rootAlias = end($tmp);
-			if ($target->alias === $rootAlias) {
-				return true;
-			}
+		} elseif (!empty($context['aliases'][$target->alias])) {
+			return true;
 		}
 
 		return false;
+	}
+
+/**
+ * Returns where `limit` or `offset` option exists
+ *
+ * @param array $options Options
+ * @return bool
+ */
+	private function hasLimitOffset($options) { // @codingStandardsIgnoreLine
+		return !empty($options['limit']) || !empty($options['offset']);
 	}
 }
