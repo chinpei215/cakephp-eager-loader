@@ -1,4 +1,6 @@
 <?php
+App::uses('EagerLoader', 'EagerLoader.Model');
+
 /**
  * EagerLoaderBehavior
  */
@@ -12,15 +14,7 @@ class EagerLoaderBehavior extends ModelBehavior {
  * @return array
  */
 	public function beforeFind(Model $model, $query) {
-		if (isset($query['contain'])) {
-			if ($query['contain'] === false) {
-				$query['recursive'] = -1;
-			} else {
-				$EagerLoader = ClassRegistry::init('EagerLoader.EagerLoader');
-				$query = $EagerLoader->transformQuery($model, $query);
-			}
-		}
-		return $query;
+		return EagerLoader::handleBeforeFind($model, $query);
 	}
 
 /**
@@ -32,14 +26,6 @@ class EagerLoaderBehavior extends ModelBehavior {
  * @return array
  */
 	public function afterFind(Model $model, $results, $primary = false) {
-		$id = Hash::get($results, '0.EagerLoader.id');
-		if ($id) {
-			$EagerLoader = ClassRegistry::init('EagerLoader.EagerLoader');
-			$EagerLoader->id = $id;
-			foreach ($results as &$result) {
-				unset($result['EagerLoader']);
-			}
-			return $EagerLoader->loadExternal($model->alias, $results);
-		}
+		return EagerLoader::handleAfterFind($model, $results);
 	}
 }

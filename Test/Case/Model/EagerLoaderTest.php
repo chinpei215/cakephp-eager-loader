@@ -56,7 +56,7 @@ class EagerLoaderTest extends CakeTestCase {
  * @dataProvider dataProviderForTestReformatContain
  */
 	public function testReformatContain($contain, $expected) {
-		$method = new ReflectionMethod('EagerLoader', 'reformatContain');
+		$method = new ReflectionMethod($this->EagerLoader, 'reformatContain');
 		$method->setAccessible(true);
 		$result = $method->invoke($this->EagerLoader, $contain);
 		$this->assertEquals($expected, $result);
@@ -168,7 +168,7 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$db = $User->getDataSource();
 
-		$method = new ReflectionMethod('EagerLoader', 'buildJoinQuery');
+		$method = new ReflectionMethod($this->EagerLoader, 'buildJoinQuery');
 		$method->setAccessible(true);
 		$result = $method->invokeArgs($this->EagerLoader, array(
 			$User,
@@ -225,7 +225,7 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$model = ClassRegistry::init($model);
 
-		$method = new ReflectionMethod('EagerLoader', 'parseContain');
+		$method = new ReflectionMethod($this->EagerLoader, 'parseContain');
 		$method->setAccessible(true);
 
 		$result = $method->invokeArgs($this->EagerLoader, array($model, $alias, $contain));
@@ -553,7 +553,7 @@ class EagerLoaderTest extends CakeTestCase {
 	public function testParseContainThrowsException() {
 		$User = ClassRegistry::init('User');
 
-		$method = new ReflectionMethod('EagerLoader', 'parseContain');
+		$method = new ReflectionMethod($this->EagerLoader, 'parseContain');
 		$method->setAccessible(true);
 		$method->invokeArgs($this->EagerLoader, array(
 			$User,
@@ -581,7 +581,7 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$User = ClassRegistry::init('User');
 
-		$method = new ReflectionMethod('EagerLoader', 'normalizeQuery');
+		$method = new ReflectionMethod($this->EagerLoader, 'normalizeQuery');
 		$method->setAccessible(true);
 		$result = $method->invokeArgs($this->EagerLoader, array($User, $query));
 
@@ -713,15 +713,9 @@ class EagerLoaderTest extends CakeTestCase {
 			$meta['finderQuery'] = $target->getNextAppleFinderQuery();
 		}
 
-		$EagerLoader = $this->getMockForModel('EagerLoader', array('loadExternal'));
-		$EagerLoader->expects($this->once())
-			->method('loadExternal')
-			->with($meta['aliasPath'], $expectedArgument, false)
-			->will($this->returnArgument(1));
-
-		$method = new ReflectionMethod($EagerLoader, ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
+		$method = new ReflectionMethod($this->EagerLoader, ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
 		$method->setAccessible(true);
-		$merged = $method->invokeArgs($EagerLoader, array($results, $target->alias, $meta));
+		$merged = $method->invokeArgs($this->EagerLoader, array($results, $target->alias, $meta));
 
 		$this->assertEquals($expectedResults, $merged);
 	}
@@ -769,7 +763,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '1',
 							'user_id' => '2',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '2',
 						),
 					),
@@ -778,7 +772,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '2',
 							'user_id' => '4',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '4',
 						),
 					),
@@ -787,7 +781,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '6',
 							'user_id' => '2',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '2',
 						),
 					),
@@ -859,7 +853,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '1',
 							'user_id' => '2',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '2',
 						),
 					),
@@ -868,7 +862,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '2',
 							'user_id' => '4',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '4',
 						),
 					),
@@ -931,7 +925,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'id' => '1',
 							'comment_id' => '5',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '5',
 						),
 					),
@@ -992,7 +986,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'article_id' => '1',
 							'tag_id' => '1',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '1',
 						),
 					),
@@ -1004,7 +998,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'article_id' => '1',
 							'tag_id' => '2',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '1',
 						),
 					),
@@ -1016,7 +1010,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'article_id' => '2',
 							'tag_id' => '1',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '2',
 						),
 					),
@@ -1028,7 +1022,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'article_id' => '2',
 							'tag_id' => '3',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '2',
 						),
 					),
@@ -1123,7 +1117,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'created' => '2006-11-22 10:43:13',
 							'modified' => '2006-11-30 18:38:10',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '1',
 						),
 					),
@@ -1136,7 +1130,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'created' => '2006-12-25 05:29:39',
 							'modified' => '2006-12-25 05:29:39',
 						),
-						'EagerLoader' => array(
+						'EagerLoaderModel' => array(
 							'assoc_id' => '5',
 						),
 					),

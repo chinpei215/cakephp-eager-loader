@@ -2,12 +2,16 @@
 
 /**
  * EagerLoader class
+ *
+ * @final
  */
-class EagerLoader extends Model {
+class EagerLoader {
 
-	public $useTable = false;
+	private static $handlers = array(); // @codingStandardsIgnoreLine
 
-	private $settings = array(); // @codingStandardsIgnoreLine
+	private $id; // @codingStandardsIgnoreLine
+
+	private $metas = array(); // @codingStandardsIgnoreLine
 
 	private $containOptions = array(  // @codingStandardsIgnoreLine
 		'conditions' => 1,
@@ -18,13 +22,54 @@ class EagerLoader extends Model {
 	);
 
 /**
- * Returns true
- *
- * @param string $field Name of field to look for
- * @return bool
+ * Constructor
  */
-	public function isVirtualField($field) {
-		return true;
+	public function __construct() {
+		static $id = 0;
+		$this->id = ++$id;
+	}
+
+/**
+ * Handles beforeFind event
+ *
+ * @param Model $model Model 
+ * @param array $query Query
+ * @return array Modified query
+ */
+	public static function handleBeforeFind(Model $model, $query) {
+		if (is_array($query)) {
+			if (isset($query['contain'])) {
+				if ($query['contain'] === false) {
+					$query['recursive'] = -1;
+				} else {
+					$EagerLoader = new EagerLoader();
+					$query = $EagerLoader->transformQuery($model, $query);
+
+					self::$handlers[$EagerLoader->id] = $EagerLoader;
+				}
+			}
+		}
+		return $query;
+	}
+
+/**
+ * Handles afterFind event
+ *
+ * @param Model $model Model
+ * @param array $results Results
+ * @return array Modified results
+ */
+	public static function handleAfterFind(Model $model, $results) {
+		if (is_array($results)) {
+			$id = Hash::get($results, '0.EagerLoaderModel.id');
+			if ($id) {
+				$EagerLoader = self::$handlers[$id];
+				unset(self::$handlers[$id]);
+
+				$results = $EagerLoader->transformResults($model, $results);
+			}
+		}
+		return $results;
 	}
 
 /**
@@ -34,23 +79,36 @@ class EagerLoader extends Model {
  * @param array $query Query
  * @return array Modified query
  */
-	public function transformQuery(Model $model, $query) {
-		static $id = 0;
-		$this->id = (++$id);
+	private function transformQuery(Model $model, array $query) { // @codingStandardsIgnoreLine
+		ClassRegistry::init('EagerLoader.EagerLoaderModel');
 
 		$contain = $this->reformatContain($query['contain']);
 		foreach ($contain['contain'] as $key => $val) {
 			$this->parseContain($model, $key, $val);
 		}
 
+		$query = $this->attachAssociations($model, $model->alias, $query);
+
 		$db = $model->getDataSource();
 		$value = $db->value($this->id);
-		$name = $db->name($this->alias . '__' . 'id');
-
-		$query = $this->attachAssociations($model, $model->alias, $query);
+		$name = $db->name('EagerLoaderModel' . '__' . 'id');
 		$query['fields'][] = "($value) AS $name";
 
 		return $query;
+	}
+
+/**
+ * Modifies the results
+ *
+ * @param Model $model Model
+ * @param array $results Results
+ * @return array Modified results
+ */
+	private  function transformResults(Model $model, array $results) { // @codingStandardsIgnoreLine
+		foreach ($results as &$result) {
+			unset($result['EagerLoaderModel']);
+		}
+		return $this->loadExternal($model->alias, $results);
 	}
 
 /**
@@ -65,22 +123,19 @@ class EagerLoader extends Model {
 		$db = $model->getDataSource();
 
 		$query = $this->normalizeQuery($model, $query);
-		$metas =& $this->settings[$this->id][$path];
 
-		if ($metas) {
-			foreach ($metas as $alias => $meta) {
-				extract($meta);
-				if ($external) {
-					$query = $this->addField($query, "$parentAlias.$parentKey");
-				} else {
-					$joinType = 'LEFT';
-					if ($belong) {
-						$field = $parent->schema($parentKey);
-						$joinType = ($field['null'] ? 'LEFT' : 'INNER');
-					}
-
-					$query = $this->buildJoinQuery($target, $query, $joinType, array("$parentAlias.$parentKey" => "$alias.$targetKey"), $options);
+		foreach ($this->metas($path) as $alias => $meta) {
+			extract($meta);
+			if ($external) {
+				$query = $this->addField($query, "$parentAlias.$parentKey");
+			} else {
+				$joinType = 'LEFT';
+				if ($belong) {
+					$field = $parent->schema($parentKey);
+					$joinType = ($field['null'] ? 'LEFT' : 'INNER');
 				}
+
+				$query = $this->buildJoinQuery($target, $query, $joinType, array("$parentAlias.$parentKey" => "$alias.$targetKey"), $options);
 			}
 		}
 
@@ -91,34 +146,34 @@ class EagerLoader extends Model {
 	}
 
 /**
+ * Fetches meta data
+ *
+ * @param string $path Path of the association
+ * @return array
+ */
+	private function metas($path) { // @codingStandardsIgnoreLine
+		if (isset($this->metas[$path])) {
+			return $this->metas[$path];
+		}
+		return array();
+	}
+
+/**
  * Fetches external associations
  * 
  * @param string $path The target path of the external primary model, such as 'User.Article'
  * @param array $results The results of the parent model
- * @param bool $clear If true, the settings for eager loading will be removed
  * @return array
  */
-	public function loadExternal($path, array $results, $clear = true) {
-		if ($results) {
-			$metas =& $this->settings[$this->id][$path];
-			if ($metas) {
-				$metas = Hash::sort($metas, '{s}.propertyPath', 'desc');
-
-				foreach ($metas as $alias => $meta) {
-					extract($meta);
-					if ($external) {
-						$results = $this->mergeExternalExternal($results, $alias, $meta);
-					} else {
-						$results = $this->mergeInternalExternal($results, $alias, $meta);
-					}
-				}
+	private function loadExternal($path, array $results) { // @codingStandardsIgnoreLine
+		foreach ($this->metas($path) as $alias => $meta) {
+			extract($meta);
+			if ($external) {
+				$results = $this->mergeExternalExternal($results, $alias, $meta);
+			} else {
+				$results = $this->mergeInternalExternal($results, $alias, $meta);
 			}
 		}
-
-		if ($clear) {
-			unset($this->settings[$this->id]);
-		}
-
 		return $results;
 	}
 
@@ -132,6 +187,9 @@ class EagerLoader extends Model {
  */
 	private function mergeExternalExternal(array $results, $alias, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
+
+		$dummy = ClassRegistry::init('EagerLoader.EagerLoaderModel');
+		$dummy->$alias = $target; // Hack for DboSource::_filterResults()
 
 		$assocAlias = $alias;
 		$assocKey = $targetKey;
@@ -158,7 +216,7 @@ class EagerLoader extends Model {
 			foreach ($ids as $id) {
 				$eachQuery = str_replace('{$__cakeID__$}', $db->value($id), $finderQuery);
 				$eachAssocResults = $db->fetchAll($eachQuery, $target->cacheQueries);
-				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.{$this->alias}.assoc_id", $id);
+				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.EagerLoaderModel.assoc_id", $id);
 				$assocResults = array_merge($assocResults, $eachAssocResults);
 			}
 		} elseif ($this->hasLimitOffset($options)) {
@@ -167,18 +225,17 @@ class EagerLoader extends Model {
 				$eachOptions = $options;
 				$eachOptions['conditions'][] = array("$assocAlias.$assocKey" => $id);
 				$eachAssocResults = $db->read($target, $eachOptions);
-				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.{$this->alias}.assoc_id", $id);
+				$eachAssocResults = Hash::insert($eachAssocResults, "{n}.EagerLoaderModel.assoc_id", $id);
 				$assocResults = array_merge($assocResults, $eachAssocResults);
 			}
 		} else {
-			$options['fields'][] = "($assocAlias.$assocKey) AS " . $db->name($this->alias . '__' . 'assoc_id');
+			$options['fields'][] = "($assocAlias.$assocKey) AS " . $db->name('EagerLoaderModel' . '__' . 'assoc_id');
 			$options['conditions'][] = array("$assocAlias.$assocKey" => $ids);
 			$assocResults = $db->read($target, $options);
 		}
 
 		// Triggers afterFind for the external primary model.
-		$this->$alias = $target; // Hack for DboSource::_filterResults()
-		$db->dispatchMethod('_filterResultsInclusive', array(&$assocResults, $this, array($alias)));
+		$db->dispatchMethod('_filterResultsInclusive', array(&$assocResults, $dummy, array($alias)));
 
 		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
 
@@ -193,7 +250,7 @@ class EagerLoader extends Model {
 		foreach ($results as &$result) {
 			$assoc = array();
 			foreach ($assocResults as $assocResult) {
-				if ((string)$result[$parentAlias][$parentKey] === (string)$assocResult[$this->alias]['assoc_id']) {
+				if ((string)$result[$parentAlias][$parentKey] === (string)$assocResult['EagerLoaderModel']['assoc_id']) {
 					$assoc[] = $assocResult[$alias];
 				}
 			}
@@ -399,7 +456,6 @@ class EagerLoader extends Model {
 				'aliases' => array($parent->alias => 1)
 			);
 		}
-		$map =& $this->settings[$this->id];
 
 		$aliasPath = $context['aliasPath'] . '.' . $alias;
 		$propertyPath = ($context['propertyPath'] ? $context['propertyPath'] . '.' : '') . $alias;
@@ -464,7 +520,7 @@ class EagerLoader extends Model {
 			$path = $context['root'];
 		}
 
-		$map[$path][$alias] = $meta;
+		$this->metas[$path][$alias] = $meta;
 
 		$context['aliasPath'] = $aliasPath;
 		$context['forceExternal'] = !empty($finderQuery);
@@ -473,7 +529,7 @@ class EagerLoader extends Model {
 			$this->parseContain($target, $key, $val, $context);
 		}
 
-		return $map;
+		return $this->metas;
 	}
 
 /**
