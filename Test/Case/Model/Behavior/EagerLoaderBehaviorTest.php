@@ -24,6 +24,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		'core.articles_tag',
 		'core.apple',
 		'core.sample',
+		'core.category',
 		'plugin.EagerLoader.external_comment',
 	);
 
@@ -818,6 +819,41 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			// }}}
 		);
 		$result = $Apple->find('first', $options);
+		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * Tests non-existent belongsTo association
+ *
+ * @return void
+ */
+	public function testNonExistentBelongsTo() {
+		$this->loadFixtures('Category');
+
+		$Category = ClassRegistry::init('Category');
+		$result = $Category->find('first', array(
+			'contain' => array(
+				'ParentCategory'
+			),
+		));
+
+		$expected = array(
+			'Category' => array(
+				'id' => '1',
+				'parent_id' => '0',
+				'name' => 'Category 1',
+				'created' => '2007-03-18 15:30:23',
+				'updated' => '2007-03-18 15:32:31'
+			),
+			'ParentCategory' => array(
+				'id' => null,
+				'parent_id' => null,
+				'name' => null,
+				'created' => null,
+				'updated' => null
+			)
+		);
+
 		$this->assertEquals($expected, $result);
 	}
 }

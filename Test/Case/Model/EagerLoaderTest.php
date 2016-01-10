@@ -538,6 +538,49 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				// }}}
 			),
+			array(
+				// {{{ #5 self
+				'Apple',
+				'ParentApple',
+				array(
+					'options' => array(),
+					'contain' => array(
+						'ParentApple' => array('options' => array(), 'contain' => array()),
+					)
+				),
+				array(
+					'Apple' => array(
+						'ParentApple' => array(
+							'parentAlias' => 'Apple',
+							'parentKey' => 'apple_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Apple.ParentApple',
+							'propertyPath' => 'ParentApple',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => false,
+						),
+					),
+					'Apple.ParentApple' => array(
+						'ParentApple' => array(
+							'parentAlias' => 'ParentApple',
+							'parentKey' => 'apple_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Apple.ParentApple.ParentApple',
+							'propertyPath' => 'ParentApple.ParentApple',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => true,
+						),
+					),
+				),
+				// }}}
+			),
+
 		);
 	}
 

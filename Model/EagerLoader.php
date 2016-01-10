@@ -142,8 +142,6 @@ class EagerLoader {
  * @return array Modified query
  */
 	private function attachAssociations(Model $model, $path, array $query) { // @codingStandardsIgnoreLine
-		$db = $model->getDataSource();
-
 		$query = $this->normalizeQuery($model, $query);
 
 		foreach ($this->metas($path) as $alias => $meta) {
@@ -151,13 +149,7 @@ class EagerLoader {
 			if ($external) {
 				$query = $this->addField($query, "$parentAlias.$parentKey");
 			} else {
-				$joinType = 'LEFT';
-				if ($belong) {
-					$field = $parent->schema($parentKey);
-					$joinType = ($field['null'] ? 'LEFT' : 'INNER');
-				}
-
-				$query = $this->buildJoinQuery($target, $query, $joinType, array("$parentAlias.$parentKey" => "$alias.$targetKey"), $options);
+				$query = $this->buildJoinQuery($target, $query, 'LEFT', array("$parentAlias.$parentKey" => "$alias.$targetKey"), $options);
 			}
 		}
 
