@@ -733,7 +733,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		$this->assertEquals(1, $Comment->queryCount());
 		$this->assertEquals($expected, $results);
 
-		$Comment->Behaviors->disable('EagerLoader.EagerLoader');
+		$Comment->Behaviors->disable('EagerLoader');
 		$results = $Comment->find('all', $options);
 		$this->assertEquals(7, $Comment->queryCount()); // ContainableBehavior cannot load deep associations eagerly
 		$this->assertEquals($expected, $results);
@@ -781,7 +781,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 
 		$Apple->Behaviors->load('Containable');
-		$Apple->Behaviors->disable('EagerLoader.EagerLoader');
+		$Apple->Behaviors->disable('EagerLoader');
 
 		$expected = array(
 			// {{{
