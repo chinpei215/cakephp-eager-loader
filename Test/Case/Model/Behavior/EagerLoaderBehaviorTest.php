@@ -22,6 +22,8 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		'core.attachment',
 		'core.tag',
 		'core.articles_tag',
+		'core.apple',
+		'core.sample',
 		'plugin.EagerLoader.external_comment',
 	);
 
@@ -734,5 +736,88 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		$results = $Comment->find('all', $options);
 		$this->assertEquals(7, $Comment->queryCount()); // ContainableBehavior cannot load deep associations eagerly
 		$this->assertEquals($expected, $results);
+	}
+
+/**
+ * Tests caling find method in afterFind
+ *
+ * @return void
+ */
+	public function testCallingFindInAfterFind() {
+		$this->loadFixtures('Apple', 'Sample');
+
+		$Apple = ClassRegistry::init('Apple');
+
+		$options = array(
+			'fields' => array(
+				'Apple.id',
+			),
+			'contain' => 'SampleA',
+			'conditions' => array('Apple.id' => 3),
+		);
+
+		$expected = array(
+			// {{{
+			'Apple' => array(
+				'id' => '3',
+			),
+			'SampleA' => array(
+				'id' => '1',
+				'apple_id' => '3',
+				'name' => 'sample1',
+				'Apple' => array(
+					'id' => '1',
+					'apple_id' => '2',
+					'ParentApple' => array(
+						'id' => '2',
+						'name' => 'Bright Red Apple'
+					)
+				)
+			)
+			// }}}
+		);
+		$result = $Apple->find('first', $options);
+		$this->assertEquals($expected, $result);
+
+		$Apple->Behaviors->load('Containable');
+		$Apple->Behaviors->disable('EagerLoader.EagerLoader');
+
+		$expected = array(
+			// {{{
+			'Apple' => array(
+				'id' => '3',
+			),
+			'SampleA' => array(
+				'id' => '1',
+				'apple_id' => '3',
+				'name' => 'sample1',
+				'Apple' => array(
+					'id' => '1',
+					'apple_id' => '2',
+					'ParentApple' => array(
+						'id' => '2',
+						'name' => 'Bright Red Apple'
+					)
+				)
+			),
+			'Sample' => array( // ContainableBehavior will contain Sample wrongly
+				array(
+					'id' => '1',
+					'apple_id' => '3',
+					'name' => 'sample1',
+					'Apple' => array(
+						'id' => '1',
+						'apple_id' => '2',
+						'ParentApple' => array(
+							'id' => '2',
+							'name' => 'Bright Red Apple'
+						)
+					)
+				)
+			),
+			// }}}
+		);
+		$result = $Apple->find('first', $options);
+		$this->assertEquals($expected, $result);
 	}
 }

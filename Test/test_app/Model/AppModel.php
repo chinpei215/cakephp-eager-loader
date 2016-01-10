@@ -2,7 +2,7 @@
 /**
  * AppModel for testing
  */
-class AppModel extends Model {
+class AppModel extends CakeTestModel {
 
 	public $actsAs = array(
 		'EagerLoader.EagerLoader',

@@ -25,14 +25,13 @@ class EagerLoader {
  * Constructor
  */
 	public function __construct() {
-		static $id = 0;
-		$this->id = ++$id;
+		$this->id = max(self::ids()) + 1;
 	}
 
 /**
  * Handles beforeFind event
  *
- * @param Model $model Model 
+ * @param Model $model Model
  * @param array $query Query
  * @return array Modified query
  */
@@ -46,6 +45,10 @@ class EagerLoader {
 					$query = $EagerLoader->transformQuery($model, $query);
 
 					self::$handlers[$EagerLoader->id] = $EagerLoader;
+					if (count(self::$handlers) > 1000) {
+						$id = min(self::ids());
+						unset(self::$handlers[$id]);
+					}
 				}
 			}
 		}
@@ -58,11 +61,16 @@ class EagerLoader {
  * @param Model $model Model
  * @param array $results Results
  * @return array Modified results
+ * @throws UnexpectedValueException
  */
 	public static function handleAfterFind(Model $model, $results) {
 		if (is_array($results)) {
 			$id = Hash::get($results, '0.EagerLoaderModel.id');
 			if ($id) {
+				if (empty(self::$handlers[$id])) {
+					throw new UnexpectedValueException(sprintf('EagerLoader "%s" is not found', $id));
+				}
+
 				$EagerLoader = self::$handlers[$id];
 				unset(self::$handlers[$id]);
 
@@ -70,6 +78,19 @@ class EagerLoader {
 			}
 		}
 		return $results;
+	}
+
+/**
+ * Returns object ids
+ *
+ * @return array
+ */
+	private static function ids() { // @codingStandardsIgnoreLine
+		$ids = array_keys(self::$handlers);
+		if (!$ids) {
+			return array(0);
+		}
+		return $ids;
 	}
 
 /**
@@ -93,6 +114,7 @@ class EagerLoader {
 		$value = $db->value($this->id);
 		$name = $db->name('EagerLoaderModel' . '__' . 'id');
 		$query['fields'][] = "($value) AS $name";
+		$query['callbacks'] = true;
 
 		return $query;
 	}
@@ -160,7 +182,7 @@ class EagerLoader {
 
 /**
  * Fetches external associations
- * 
+ *
  * @param string $path The target path of the external primary model, such as 'User.Article'
  * @param array $results The results of the parent model
  * @return array

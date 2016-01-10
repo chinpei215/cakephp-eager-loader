@@ -8,6 +8,20 @@ class Apple extends AppModel {
 		)
 	);
 
+	public $hasOne = array(
+		'SampleA' => array(
+			'className' => 'Sample',
+			'conditions' => array(
+				'SampleA.id' => 1,
+			),
+			'external' => true,
+		),
+	);
+
+	public $hasMany = array(
+		'Sample'
+	);
+
 /**
  * Constructor
  *

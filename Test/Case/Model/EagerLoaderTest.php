@@ -1323,4 +1323,36 @@ class EagerLoaderTest extends CakeTestCase {
 			),
 		);
 	}
+
+/**
+ * Tests that no memory leak occurs
+ *
+ * @return void
+ */
+	public function testGarbageCollection() {
+		$this->loadFixtures('User', 'Article');
+		$User = ClassRegistry::init('User');
+
+		for ($i = 0; $i < 1100; ++$i) {
+			EagerLoader::handleBeforeFind($User, array('contain' => 'Article'));
+		}
+
+		$method = new ReflectionMethod($this->EagerLoader, 'ids');
+		$method->setAccessible(true);
+		$ids = $method->invoke($this->EagerLoader);
+		$this->assertEquals(1000, count($ids));
+	}
+
+/**
+ * Tests that an exception occurs if invalid ID specified
+ *
+ * @return void
+ *
+ * @expectedException UnexpectedValueException
+ * @expectedExceptionMessage EagerLoader "foo" is not found
+ */
+	public function testNotFound() {
+		$User = ClassRegistry::init('User');
+		EagerLoader::handleAfterFind($User, array(array('EagerLoaderModel' => array('id' => 'foo'))));
+	}
 }
