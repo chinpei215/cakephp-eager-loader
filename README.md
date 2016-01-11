@@ -27,7 +27,7 @@ $Comment->find('first', [
 ```
 
 `EagerLoaderBehavior` has a high compatibility with `ContainableBehavior`, but generates better queries.
-In the above example, only 2 queries will be executed.
+In the above example, only 2 queries will be executed such as the following:
 ```sql
 SELECT 
 	Comment.id, ...
@@ -53,7 +53,7 @@ If using `ContainableBehavior`, how many queries are executed? 10 or more?
 ## Incompatibility problems
 
 `EagerLoaderBehavior` returns almost same results as `ContainableBehavior`, however you might encounter incompatibility problems between the 2 behaviors.
-For example `agerLoaderBehavior::contain()` is not implemented yet.
+For example `EagerLoaderBehavior::contain()` is not implemented yet.
 
 Then disabling EagerLoader on the fly, you can use `ContainableBehavior::contain()` instead:
 ```php
