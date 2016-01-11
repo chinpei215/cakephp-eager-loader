@@ -55,7 +55,7 @@ If using `ContainableBehavior`, how many queries are executed? 10 or more?
 `EagerLoaderBehavior` returns almost same results as `ContainableBehavior`, however you might encounter incompatibility problems between the 2 behaviors.
 For example `EagerLoaderBehavior::contain()` is not implemented yet.
 
-Then disabling EagerLoader on the fly, you can use `ContainableBehavior::contain()` instead:
+Then disabling `EagerLoaderBehavior` on the fly, you can use `ContainableBehavior::contain()` instead:
 ```php
 $Comment->Behaviors->disable('EagerLoader');
 $Comment->Behaviors->load('Containable');
