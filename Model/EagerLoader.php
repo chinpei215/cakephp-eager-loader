@@ -144,7 +144,7 @@ class EagerLoader {
 	private function attachAssociations(Model $model, $path, array $query) { // @codingStandardsIgnoreLine
 		$query = $this->normalizeQuery($model, $query);
 
-		foreach ($this->metas($path) as $alias => $meta) {
+		foreach ($this->metas($path) as $meta) {
 			extract($meta);
 			if ($external) {
 				$query = $this->addField($query, "$parentAlias.$parentKey");
@@ -180,12 +180,12 @@ class EagerLoader {
  * @return array
  */
 	private function loadExternal($path, array $results) { // @codingStandardsIgnoreLine
-		foreach ($this->metas($path) as $alias => $meta) {
+		foreach ($this->metas($path) as $meta) {
 			extract($meta);
 			if ($external) {
-				$results = $this->mergeExternalExternal($results, $alias, $meta);
+				$results = $this->mergeExternalExternal($results, $meta);
 			} else {
-				$results = $this->mergeInternalExternal($results, $alias, $meta);
+				$results = $this->mergeInternalExternal($results, $meta);
 			}
 		}
 		return $results;
@@ -195,11 +195,10 @@ class EagerLoader {
  * Merges results of external associations of an external association
  *
  * @param array $results Results
- * @param string $alias Name of the target model
  * @param array $meta Meta data to be used for eager loading
  * @return array
  */
-	private function mergeExternalExternal(array $results, $alias, array $meta) { // @codingStandardsIgnoreLine
+	private function mergeExternalExternal(array $results, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
 		$dummy = ClassRegistry::init('EagerLoader.EagerLoaderModel');
@@ -281,11 +280,10 @@ class EagerLoader {
  * Merges results of external associations of an internal association
  *
  * @param array $results Results
- * @param string $alias Name of the target model
  * @param array $meta Meta data to be used for eager loading
  * @return array
  */
-	private function mergeInternalExternal(array $results, $alias, array $meta) { // @codingStandardsIgnoreLine
+	private function mergeInternalExternal(array $results, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
 		$assocResults = array();
@@ -467,7 +465,6 @@ class EagerLoader {
 				'aliasPath' => $parent->alias,
 				'propertyPath' => '',
 				'forceExternal' => false,
-				'aliases' => array($parent->alias => 1)
 			);
 		}
 
@@ -514,7 +511,7 @@ class EagerLoader {
 		}
 
 		$meta = compact(
-			'parent', 'target',
+			'alias', 'parent', 'target',
 			'parentAlias', 'parentKey',
 			'targetKey', 'aliasPath', 'propertyPath',
 			'options', 'has', 'many', 'belong', 'external', 'finderQuery',
@@ -525,16 +522,14 @@ class EagerLoader {
 			$meta['external'] = true;
 			$context['root'] = $aliasPath;
 			$context['propertyPath'] = $alias;
-			$context['aliases'] = array($alias => 1);
 			$path = $context['aliasPath'];
 		} else {
 			$meta['external'] = false;
 			$context['propertyPath'] = $propertyPath;
-			$context['aliases'][$alias] = 1;
 			$path = $context['root'];
 		}
 
-		$this->metas[$path][$alias] = $meta;
+		$this->metas[$path][] = $meta;
 
 		$context['aliasPath'] = $aliasPath;
 		$context['forceExternal'] = !empty($finderQuery);
@@ -568,8 +563,12 @@ class EagerLoader {
 			return true;
 		} elseif ($context['forceExternal']) {
 			return true;
-		} elseif (!empty($context['aliases'][$target->alias])) {
-			return true;
+		} else {
+			$metas = $this->metas($context['root']);
+			$aliases = Hash::extract($metas, '{n}.alias');
+			if (in_array($alias, $aliases, true)) {
+				return true;
+			}
 		}
 
 		return false;

@@ -231,10 +231,10 @@ class EagerLoaderTest extends CakeTestCase {
 		$result = $method->invokeArgs($this->EagerLoader, array($model, $alias, $contain));
 
 		// Remove something
-		$result = Hash::remove($result, '{s}.{s}.target');
-		$result = Hash::remove($result, '{s}.{s}.parent');
-		$result = Hash::remove($result, '{s}.{s}.habtm');
-		$result = Hash::remove($result, '{s}.{s}.finderQuery');
+		$result = Hash::remove($result, '{s}.{n}.target');
+		$result = Hash::remove($result, '{s}.{n}.parent');
+		$result = Hash::remove($result, '{s}.{n}.habtm');
+		$result = Hash::remove($result, '{s}.{n}.finderQuery');
 
 		$this->assertEquals($expected, $result);
 	}
@@ -261,7 +261,8 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				array(
 					'Comment' => array(
-						'Article' => array(
+						array(
+							'alias' => 'Article',
 							'parentAlias' => 'Comment',
 							'parentKey' => 'article_id',
 							'targetKey' => 'id',
@@ -273,7 +274,8 @@ class EagerLoaderTest extends CakeTestCase {
 							'many' => false,
 							'external' => false,
 						),
-						'User' => array(
+						array(
+							'alias' => 'User',
 							'parentAlias' => 'Article',
 							'parentKey' => 'user_id',
 							'targetKey' => 'id',
@@ -290,7 +292,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #1 options
+				// {{{ #1 complex
 				'User',
 				'Article',
 				array(
@@ -308,7 +310,8 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				array(
 					'User' => array(
-						'Article' => array(
+						array(
+							'alias' => 'Article',
 							'parentAlias' => 'User',
 							'parentKey' => 'id',
 							'targetKey' => 'user_id',
@@ -322,7 +325,8 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 					'User.Article' => array(
-						'Comment' => array(
+						array(
+							'alias' => 'Comment',
 							'parentAlias' => 'Article',
 							'parentKey' => 'id',
 							'targetKey' => 'article_id',
@@ -334,7 +338,8 @@ class EagerLoaderTest extends CakeTestCase {
 							'many' => true,
 							'external' => true,
 						),
-						'Tag' => array(
+						array(
+							'alias' => 'Tag',
 							'parentAlias' => 'Article',
 							'parentKey' => 'id',
 							'targetKey' => 'id',
@@ -351,7 +356,8 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 					'User.Article.Comment' => array(
-						'User' => array(
+						array(
+							'alias' => 'User',
 							'parentAlias' => 'Comment',
 							'parentKey' => 'user_id',
 							'targetKey' => 'id',
@@ -363,7 +369,8 @@ class EagerLoaderTest extends CakeTestCase {
 							'many' => false,
 							'external' => false,
 						),
-						'Attachment' => array(
+						array(
+							'alias' => 'Attachment',
 							'parentAlias' => 'Comment',
 							'parentKey' => 'id',
 							'targetKey' => 'comment_id',
@@ -391,7 +398,8 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				array(
 					'Article' => array(
-						'Tag' => array(
+						array(
+							'alias' => 'Tag',
 							'parentAlias' => 'Article',
 							'parentKey' => 'id',
 							'targetKey' => 'id',
@@ -408,7 +416,8 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 					'Article.Tag' => array(
-						'Article' => array(
+						array(
+							'alias' => 'Article',
 							'parentAlias' => 'Tag',
 							'parentKey' => 'id',
 							'targetKey' => 'id',
@@ -434,7 +443,8 @@ class EagerLoaderTest extends CakeTestCase {
 				array('options' => array(), 'contain' => array()),
 				array(
 					'Article' => array(
-						'SecondComment' => array(
+						array(
+							'alias' => 'SecondComment',
 							'parentAlias' => 'Article',
 							'parentKey' => 'id',
 							'targetKey' => 'article_id',
@@ -466,7 +476,8 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				array(
 					'Apple' => array(
-						'NextApple' => array(
+						array(
+							'alias' => 'NextApple',
 							'parentAlias' => 'Apple',
 							'parentKey' => 'id',
 							'targetKey' => 'apple_id',
@@ -480,7 +491,8 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 					'Apple.NextApple' => array(
-						'ParentApple' => array(
+						array(
+							'alias' => 'ParentApple',
 							'parentAlias' => 'NextApple',
 							'parentKey' => 'apple_id',
 							'targetKey' => 'id',
@@ -498,36 +510,70 @@ class EagerLoaderTest extends CakeTestCase {
 			),
 			array(
 				// {{{ #4 duplication
-				'Comment',
 				'Attachment',
+				'Comment',
 				array(
 					'options' => array(),
 					'contain' => array(
-						'Comment' => array('options' => array(), 'contain' => array()),
+						'Article' => array(
+							'options' => array(),
+							'contain' => array(
+								'User' => array('options' => array(), 'contain' => array()),
+							),
+						),
+						'User' => array('options' => array(), 'contain' => array()),
 					)
 				),
 				array(
-					'Comment' => array(
-						'Attachment' => array(
-							'parentAlias' => 'Comment',
-							'parentKey' => 'id',
-							'targetKey' => 'comment_id',
-							'aliasPath' => 'Comment.Attachment',
-							'propertyPath' => 'Attachment',
+					'Attachment' => array(
+						array(
+							'alias' => 'Comment',
+							'parentAlias' => 'Attachment',
+							'parentKey' => 'comment_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Attachment.Comment',
+							'propertyPath' => 'Comment',
 							'options' => array(),
-							'has' => true,
-							'belong' => false,
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => false,
+						),
+						array(
+							'alias' => 'Article',
+							'parentAlias' => 'Comment',
+							'parentKey' => 'article_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Attachment.Comment.Article',
+							'propertyPath' => 'Comment.Article',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
+							'many' => false,
+							'external' => false,
+						),
+						array(
+							'alias' => 'User',
+							'parentAlias' => 'Article',
+							'parentKey' => 'user_id',
+							'targetKey' => 'id',
+							'aliasPath' => 'Attachment.Comment.Article.User',
+							'propertyPath' => 'Comment.Article.User',
+							'options' => array(),
+							'has' => false,
+							'belong' => true,
 							'many' => false,
 							'external' => false,
 						),
 					),
-					'Comment.Attachment' => array(
-						'Comment' => array(
-							'parentAlias' => 'Attachment',
-							'parentKey' => 'comment_id',
+					'Attachment.Comment' => array(
+						array(
+							'alias' => 'User',
+							'parentAlias' => 'Comment',
+							'parentKey' => 'user_id',
 							'targetKey' => 'id',
-							'aliasPath' => 'Comment.Attachment.Comment',
-							'propertyPath' => 'Attachment.Comment',
+							'aliasPath' => 'Attachment.Comment.User',
+							'propertyPath' => 'Comment.User',
 							'options' => array(),
 							'has' => false,
 							'belong' => true,
@@ -550,7 +596,8 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				array(
 					'Apple' => array(
-						'ParentApple' => array(
+						array(
+							'alias' => 'ParentApple',
 							'parentAlias' => 'Apple',
 							'parentKey' => 'apple_id',
 							'targetKey' => 'id',
@@ -564,7 +611,8 @@ class EagerLoaderTest extends CakeTestCase {
 						),
 					),
 					'Apple.ParentApple' => array(
-						'ParentApple' => array(
+						array(
+							'alias' => 'ParentApple',
 							'parentAlias' => 'ParentApple',
 							'parentKey' => 'apple_id',
 							'targetKey' => 'id',
@@ -743,6 +791,7 @@ class EagerLoaderTest extends CakeTestCase {
 		$meta += array(
 			'parent' => $parent,
 			'target' => $target,
+			'alias' => $target->alias,
 			'parentAlias' => $parent->alias,
 			'aliasPath' => $parent->alias . '.' . $target->alias,
 			'propertyPath' => $parent->alias . '.' . $target->alias,
@@ -758,7 +807,7 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$method = new ReflectionMethod($this->EagerLoader, ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
 		$method->setAccessible(true);
-		$merged = $method->invokeArgs($this->EagerLoader, array($results, $target->alias, $meta));
+		$merged = $method->invokeArgs($this->EagerLoader, array($results, $meta));
 
 		$this->assertEquals($expectedResults, $merged);
 	}

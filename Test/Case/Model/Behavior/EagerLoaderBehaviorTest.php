@@ -26,10 +26,11 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		'core.sample',
 		'core.category',
 		'plugin.EagerLoader.external_comment',
+		'plugin.EagerLoader.profile',
 	);
 
 /**
- * Tests eager loading
+ * Tests find('all')
  *
  * @param string $model Name of the model
  * @param array $options Options for find method
@@ -854,6 +855,69 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			)
 		);
 
+		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * Tests duplicated aliases
+ *
+ * @return void
+ */
+	public function testDuplicatedAliases() {
+		$this->loadFixtures('Comment', 'Article', 'User', 'Profile');
+
+		$Comment = ClassRegistry::init('Comment');
+		$Comment->Behaviors->load('QueryCounter');
+
+		$result = $Comment->find('first', array(
+			'contain' => array(
+				'Article.User.Profile',
+				'User',
+			),
+			'conditions' => array('Comment.id' => 5),
+		));
+		$expected = array(
+			'Comment' => array(
+				'id' => '5',
+				'article_id' => '2',
+				'user_id' => '1',
+				'comment' => 'First Comment for Second Article',
+				'published' => 'Y',
+				'created' => '2007-03-18 10:53:23',
+				'updated' => '2007-03-18 10:55:31'
+			),
+			'Article' => array(
+				'id' => '2',
+				'user_id' => '3',
+				'title' => 'Second Article',
+				'body' => 'Second Article Body',
+				'published' => 'Y',
+				'created' => '2007-03-18 10:41:23',
+				'updated' => '2007-03-18 10:43:31',
+				'User' => array(
+					'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+					'id' => '3',
+					'user' => 'larry',
+					'created' => '2007-03-17 01:20:23',
+					'updated' => '2007-03-17 01:22:31',
+					'Profile' => array(
+						'id' => '1',
+						'user_id' => '3',
+						'nickname' => 'phpnut',
+						'company' => 'Cake Software Foundation, Inc.'
+					)
+				)
+			),
+			'User' => array(
+				'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+				'id' => '1',
+				'user' => 'mariano',
+				'created' => '2007-03-17 01:16:23',
+				'updated' => '2007-03-17 01:18:31'
+			)
+		);
+
+		$this->assertEquals(2, $Comment->queryCount());
 		$this->assertEquals($expected, $result);
 	}
 }
