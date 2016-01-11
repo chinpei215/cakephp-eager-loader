@@ -1,6 +1,8 @@
 <?php
 /**
  * EagerLoaderModel class
+ *
+ * @internal
  */
 class EagerLoaderModel extends Model {
 
