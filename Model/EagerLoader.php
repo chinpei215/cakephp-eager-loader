@@ -1,9 +1,8 @@
 <?php
-
 /**
  * EagerLoader class
  *
- * @final
+ * @internal
  */
 class EagerLoader {
 
@@ -25,6 +24,7 @@ class EagerLoader {
  * Constructor
  */
 	public function __construct() {
+		ClassRegistry::init('EagerLoader.EagerLoaderModel');
 		$this->id = max(self::ids()) + 1;
 	}
 
@@ -130,7 +130,7 @@ class EagerLoader {
 		foreach ($results as &$result) {
 			unset($result['EagerLoaderModel']);
 		}
-		return $this->loadExternal($model->alias, $results);
+		return $this->loadExternal($model, $model->alias, $results);
 	}
 
 /**
@@ -175,17 +175,20 @@ class EagerLoader {
 /**
  * Fetches external associations
  *
+ * @param Model $model Model
  * @param string $path The target path of the external primary model, such as 'User.Article'
  * @param array $results The results of the parent model
  * @return array
  */
-	private function loadExternal($path, array $results) { // @codingStandardsIgnoreLine
-		foreach ($this->metas($path) as $meta) {
-			extract($meta);
-			if ($external) {
-				$results = $this->mergeExternalExternal($results, $meta);
-			} else {
-				$results = $this->mergeInternalExternal($results, $meta);
+	protected function loadExternal(Model $model, $path, array $results) { // @codingStandardsIgnoreLine
+		if ($results) {
+			foreach ($this->metas($path) as $meta) {
+				extract($meta);
+				if ($external) {
+					$results = $this->mergeExternalExternal($model, $results, $meta);
+				} else {
+					$results = $this->mergeInternalExternal($model, $results, $meta);
+				}
 			}
 		}
 		return $results;
@@ -194,20 +197,18 @@ class EagerLoader {
 /**
  * Merges results of external associations of an external association
  *
+ * @param Model $model Model
  * @param array $results Results
  * @param array $meta Meta data to be used for eager loading
  * @return array
  */
-	private function mergeExternalExternal(array $results, array $meta) { // @codingStandardsIgnoreLine
+	private function mergeExternalExternal(Model $model, array $results, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
-		$dummy = ClassRegistry::init('EagerLoader.EagerLoaderModel');
-		$dummy->$alias = $target; // Hack for DboSource::_filterResults()
+		$db = $target->getDataSource();
 
 		$assocAlias = $alias;
 		$assocKey = $targetKey;
-
-		$db = $target->getDataSource();
 
 		$options = $this->attachAssociations($target, $aliasPath, $options);
 		if ($has && $belong) {
@@ -247,10 +248,8 @@ class EagerLoader {
 			$assocResults = $db->read($target, $options);
 		}
 
-		// Triggers afterFind for the external primary model.
-		$db->dispatchMethod('_filterResultsInclusive', array(&$assocResults, $dummy, array($alias)));
-
-		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
+		$assocResults = $this->filterResults($parent, $alias, $assocResults);
+		$assocResults = $this->loadExternal($target, $aliasPath, $assocResults);
 
 		if ($has && $belong) {
 			foreach ($assocResults as &$assocResult) {
@@ -279,24 +278,38 @@ class EagerLoader {
 /**
  * Merges results of external associations of an internal association
  *
+ * @param Model $model Model
  * @param array $results Results
  * @param array $meta Meta data to be used for eager loading
  * @return array
  */
-	private function mergeInternalExternal(array $results, array $meta) { // @codingStandardsIgnoreLine
+	private function mergeInternalExternal(Model $model, array $results, array $meta) { // @codingStandardsIgnoreLine
 		extract($meta);
 
 		$assocResults = array();
 		foreach ($results as $n => &$result) {
-			$assocResults[$n] = array( $alias => $result[$alias] );
+			if ($result[$alias][$targetKey] === null) {
+				// Remove NULL association created by LEFT JOIN
+				if (empty($eager)) {
+					$assocResults[$n] = array( $alias => array() );
+				}
+			} else {
+				$assocResults[$n] = array( $alias => $result[$alias] );
+			}
 			unset($result[$alias]);
 		}
 		unset($result);
 
-		$assocResults = $this->loadExternal($aliasPath, $assocResults, false);
+		if (!empty($eager) && !isset($model->$alias)) {
+			$assocResults = $this->filterResults($parent, $alias, $assocResults);
+		}
+		$assocResults = $this->loadExternal($target, $aliasPath, $assocResults);
+
 		foreach ($results as $n => &$result) {
-			$assoc = $assocResults[$n][$alias];
-			$result = $this->mergeAssocResult($result, $assoc, $propertyPath);
+			if (isset($assocResults[$n][$alias])) {
+				$assoc = $assocResults[$n][$alias];
+				$result = $this->mergeAssocResult($result, $assoc, $propertyPath);
+			}
 		}
 		unset($result);
 
@@ -520,12 +533,19 @@ class EagerLoader {
 
 		if ($this->isExternal($context, $meta)) {
 			$meta['external'] = true;
+
 			$context['root'] = $aliasPath;
 			$context['propertyPath'] = $alias;
+
 			$path = $context['aliasPath'];
 		} else {
 			$meta['external'] = false;
+			if ($context['root'] !== $context['aliasPath']) {
+				$meta['eager'] = true;
+			}
+
 			$context['propertyPath'] = $propertyPath;
+
 			$path = $context['root'];
 		}
 
@@ -582,5 +602,19 @@ class EagerLoader {
  */
 	private function hasLimitOffset($options) { // @codingStandardsIgnoreLine
 		return !empty($options['limit']) || !empty($options['offset']);
+	}
+
+/**
+ * Triggers afterFind() method
+ *
+ * @param Model $parent Model
+ * @param string $alias Alias
+ * @param array $results Results
+ * @return array
+ */
+	private function filterResults(Model $parent, $alias, array $results) { // @codingStandardsIgnoreLine
+		$db = $parent->getDataSource();
+		$db->dispatchMethod('_filterResultsInclusive', array(&$results, $parent, array($alias)));
+		return $results;
 	}
 }

@@ -286,6 +286,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'belong' => true,
 							'many' => false,
 							'external' => false,
+							'eager' => true,
 						),
 					),
 				),
@@ -509,7 +510,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #4 duplication
+				// {{{ #5 duplication
 				'Attachment',
 				'Comment',
 				array(
@@ -551,6 +552,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'belong' => true,
 							'many' => false,
 							'external' => false,
+							'eager' => true,
 						),
 						array(
 							'alias' => 'User',
@@ -564,6 +566,7 @@ class EagerLoaderTest extends CakeTestCase {
 							'belong' => true,
 							'many' => false,
 							'external' => false,
+							'eager' => true,
 						),
 					),
 					'Attachment.Comment' => array(
@@ -585,7 +588,7 @@ class EagerLoaderTest extends CakeTestCase {
 				// }}}
 			),
 			array(
-				// {{{ #5 self
+				// {{{ #6 self
 				'Apple',
 				'ParentApple',
 				array(
@@ -805,9 +808,15 @@ class EagerLoaderTest extends CakeTestCase {
 			$meta['finderQuery'] = $target->getNextAppleFinderQuery();
 		}
 
-		$method = new ReflectionMethod($this->EagerLoader, ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
+		$EagerLoader = $this->getMock('EagerLoader', array('loadExternal'));
+		$EagerLoader->expects($this->once())
+			->method('loadExternal')
+			->with($target, $meta['aliasPath'], $expectedArgument)
+			->will($this->returnArgument(2));
+
+		$method = new ReflectionMethod($EagerLoader, ($meta['external'] ? 'mergeExternalExternal' : 'mergeInternalExternal'));
 		$method->setAccessible(true);
-		$merged = $method->invokeArgs($this->EagerLoader, array($results, $meta));
+		$merged = $method->invokeArgs($EagerLoader, array($target, $results, $meta));
 
 		$this->assertEquals($expectedResults, $merged);
 	}
@@ -1367,7 +1376,10 @@ class EagerLoaderTest extends CakeTestCase {
 						'Comment' => array(
 							'id' => '1',
 						),
-						'Attachment' => array(),
+						'Attachment' => array(
+							'id' => null,
+							'comment_id' => null,
+						),
 					),
 					array(
 						'Comment' => array(

@@ -414,7 +414,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
  * @return void
  */
 	public function testAfterFind() {
-		$this->loadFixtures('Comment', 'Tag', 'ArticlesTag', 'Article', 'User', 'Attachment');
+		$this->loadFixtures('Comment', 'Tag', 'ArticlesTag', 'Article', 'User', 'Profile', 'Attachment');
 
 		$Comment = $this->getMockForModel('Comment', array('afterFind'));
 		$Comment->expects($this->once())
@@ -432,6 +432,10 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 							'user_id' => '3',
 							'User' => array(
 								'id' => '3',
+								'Profile' => array(
+									'id' => '1',
+									'user_id' => '3',
+								),
 							),
 							'Tag' => array(
 								array(
@@ -528,6 +532,24 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			)
 			->will($this->returnArgument(0));
 
+		$Profile = $this->getMockForModel('Profile', array('afterFind'));
+		$Profile->expects($this->once())
+			->method('afterFind')
+			->with(
+				// {{{
+				array(
+					array(
+						'Profile' => array(
+							'id' => '1',
+							'user_id' => '3',
+						),
+					),
+				),
+				false
+				// }}}
+			)
+			->will($this->returnArgument(0));
+
 		$Attachment = $this->getMockForModel('Attachment', array('afterFind'));
 		$Attachment->expects($this->once())
 			->method('afterFind')
@@ -550,8 +572,9 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			'fields' => 'Comment.id',
 			'contain' => array(
 				'Article' => array('fields' => 'Article.id'),
-				'Article.User' => array('fields' => 'User.id'),
 				'Article.Tag' => array('fields' => 'Tag.id'),
+				'Article.User' => array('fields' => 'User.id'),
+				'Article.User.Profile' => array('fields' => 'Profile.id'),
 				'Attachment' => array('fields' => 'Attachment.id'),
 			),
 			'conditions' => array(
@@ -846,13 +869,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				'created' => '2007-03-18 15:30:23',
 				'updated' => '2007-03-18 15:32:31'
 			),
-			'ParentCategory' => array(
-				'id' => null,
-				'parent_id' => null,
-				'name' => null,
-				'created' => null,
-				'updated' => null
-			)
+			'ParentCategory' => array(),
 		);
 
 		$this->assertEquals($expected, $result);
@@ -876,6 +893,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 			),
 			'conditions' => array('Comment.id' => 5),
 		));
+
 		$expected = array(
 			'Comment' => array(
 				'id' => '5',
