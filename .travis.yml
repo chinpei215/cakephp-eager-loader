@@ -11,10 +11,11 @@ env:
     - PLUGIN_NAME=EagerLoader
     - REQUIRE=""
     - DB=mysql
-    - CAKE_REF=2.7.8
+    - CAKE_REF=2.8.0
 
   matrix:
     - 
+    - CAKE_REF=2.7.10
     - CAKE_REF=2.6.12
 
 matrix:
