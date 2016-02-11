@@ -440,7 +440,7 @@ class EagerLoader {
 
 		$query['joins'][] = array(
 			'type' => $joinType,
-			'table' => $db->fullTableName($target),
+			'table' => $target,
 			'alias' => $target->alias,
 			'conditions' => $options['conditions'],
 		);

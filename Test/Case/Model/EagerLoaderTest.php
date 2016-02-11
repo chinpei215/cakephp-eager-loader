@@ -195,7 +195,7 @@ class EagerLoaderTest extends CakeTestCase {
 			'joins' => array(
 				array(
 					'type' => 'INNER',
-					'table' => $db->fullTableName($User),
+					'table' => $User,
 					'alias' => 'User',
 					'conditions' => array(
 						array('Article.user_id' => array(1, 2, 3)),
