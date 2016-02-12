@@ -867,7 +867,8 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				'parent_id' => '0',
 				'name' => 'Category 1',
 				'created' => '2007-03-18 15:30:23',
-				'updated' => '2007-03-18 15:32:31'
+				'updated' => '2007-03-18 15:32:31',
+				'is_root' => true,
 			),
 			'ParentCategory' => array(),
 		);
@@ -937,5 +938,51 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 
 		$this->assertEquals(2, $Comment->queryCount());
 		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * Tests virtual fields
+ *
+ * @return void
+ */
+	public function testVirtualFields() {
+		$this->loadFixtures('Category');
+
+		$Category = ClassRegistry::init('Category');
+		$Category->find('all', array(
+			'fields' => array(
+				'Category.id',
+				'Category.parent_id',
+				'Category.is_root',
+			),
+			'contain' => array(
+				'ParentCategory' => array(
+					'fields' => array('id', 'parent_id', 'is_root'),
+					'conditions' => array(),
+				),
+			),
+			'conditions' => array(
+				'Category.is_root' => '0',
+				'ParentCategory.is_root' => '1',
+			),
+			'order' => array(
+				'ParentCategory.is_root',
+			),
+		));
+
+		$expected = array(
+			array(
+				'Category' => array(
+					'id' => 2,
+					'parent_id' => 1,
+					'is_root' => 0,
+				),
+				'ParentCategory' => array(
+					'id' => 1,
+					'parent_id' => 0,
+					'is_root' => 1,
+				),
+			),
+		);
 	}
 }

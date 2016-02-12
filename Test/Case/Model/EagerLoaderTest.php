@@ -25,6 +25,7 @@ class EagerLoaderTest extends CakeTestCase {
 		'core.tag',
 		'core.articles_tag',
 		'core.apple',
+		'core.category',
 	);
 
 /**
@@ -202,7 +203,9 @@ class EagerLoaderTest extends CakeTestCase {
 						array('Article.user_id' => (object)array('type' => 'identifier', 'value' => 'User.id')),
 					),
 				),
-			)
+			),
+			'conditions' => array(),
+			'order' => array(),
 			// }}}
 		);
 
@@ -664,20 +667,30 @@ class EagerLoaderTest extends CakeTestCase {
 /**
  * Tests normalizeQuery method
  *
+ * @param string $model Model
  * @param array $query Query
  * @param array $expected Expected
  * @return void
  *
  * @dataProvider dataProviderForTestNormalizeQuery
  */
-	public function testNormalizeQuery($query, $expected) {
-		$this->loadFixtures('User');
+	public function testNormalizeQuery($model, $query, $expected) {
+		$this->loadFixtures($model);
 
-		$User = ClassRegistry::init('User');
+		$model = ClassRegistry::init($model);
+
+		$db = $model->getDataSource();
+		$startQuote = $db->startQuote;
+		$endQuote = $db->endQuote;
+		$db->startQuote = '';
+		$db->endQuote = '';
 
 		$method = new ReflectionMethod($this->EagerLoader, 'normalizeQuery');
 		$method->setAccessible(true);
-		$result = $method->invokeArgs($this->EagerLoader, array($User, $query));
+		$result = $method->invokeArgs($this->EagerLoader, array($model, $query));
+
+		$db->startQuote = $startQuote;
+		$db->endQuote = $endQuote;
 
 		$this->assertEquals($expected, $result);
 	}
@@ -691,6 +704,7 @@ class EagerLoaderTest extends CakeTestCase {
 		return array(
 			array(
 				// {{{ #0
+				'User',
 				array(),
 				array(
 					'fields' => array(
@@ -707,6 +721,7 @@ class EagerLoaderTest extends CakeTestCase {
 			),
 			array(
 				// {{{ #1
+				'User',
 				array(
 					'fields' => 'User.id',
 					'conditions' => '1 = 1',
@@ -720,6 +735,7 @@ class EagerLoaderTest extends CakeTestCase {
 			),
 			array(
 				// {{{ #2
+				'User',
 				array(
 					'fields' => array(
 						'User.id',
@@ -745,6 +761,7 @@ class EagerLoaderTest extends CakeTestCase {
 			),
 			array(
 				// {{{ #3
+				'User',
 				array(
 					'fields' => 'id',
 					'conditions' => array(),
@@ -764,6 +781,32 @@ class EagerLoaderTest extends CakeTestCase {
 						'User.id' => 'ASC',
 						'User.created' => 'DESC',
 						'User.updated',
+					),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #4 Virtual fields
+				'Category',
+				array(
+					'fields' => 'is_root',
+					'conditions' => array('is_root' => 0),
+					'order' => array(
+						'is_root',
+					),
+				),
+				array(
+					'fields' => array(
+						'(Category.parent_id = 0) AS Category__is_root',
+					),
+					'conditions' => array(
+						(object)array(
+							'type' => 'expression',
+							'value' => '(Category.parent_id = 0) = 0',
+						)
+					),
+					'order' => array(
+						'(Category.parent_id = 0)',
 					),
 				),
 				// }}}

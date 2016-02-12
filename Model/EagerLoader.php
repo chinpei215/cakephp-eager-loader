@@ -384,9 +384,14 @@ class EagerLoader {
 
 		$query['fields'] = (array)$query['fields'];
 		foreach ($query['fields'] as &$field) {
-			if ($model->hasField($field)) {
-				$field = $model->alias . '.' . $field;
+			$as = '';
+			if ($model->isVirtualField($field)) {
+				if (strpos($field, $model->alias . '.') === 0) {
+					$field = substr($field, strlen($model->alias) + 1);
+				}
+				$as = ' AS ' . $model->alias . '__' . $field;
 			}
+			$field = $this->normalizeField($model, $field) . $as;
 		}
 		unset($field);
 
@@ -394,26 +399,46 @@ class EagerLoader {
 		foreach ($query['conditions'] as $key => $val) {
 			if ($model->hasField($key)) {
 				unset($query['conditions'][$key]);
-				$query['conditions'][] = array($model->alias . '.' . $key => $val);
+				$key = $this->normalizeField($model, $key);
+				$query['conditions'][] = array($key => $val);
+			} elseif ($model->isVirtualField($key)) {
+				unset($query['conditions'][$key]);
+				$expression = $db->dispatchMethod('_parseKey', array($key, $val, $model));
+				$query['conditions'][] = $db->expression($expression);
 			}
 		}
 
 		$order = array();
 		foreach ((array)$query['order'] as $key => $val) {
 			if (is_int($key)) {
-				if ($model->hasField($val)) {
-					$val = $model->alias . '.' . $val;
-				}
+				$val = $this->normalizeField($model, $val);
 			} else {
-				if ($model->hasField($key)) {
-					$key = $model->alias . '.' . $key;
-				}
+				$key = $this->normalizeField($model, $key);
 			}
 			$order += array($key => $val);
 		}
 		$query['order'] = $order;
 
 		return $query;
+	}
+
+/**
+ * Normalize field
+ *
+ * @param Model $model Model
+ * @param string $field Name of the field
+ * @return string
+ */
+	private function normalizeField(Model $model, $field) { // @codingStandardsIgnoreLine
+		if ($model->hasField($field)) {
+			$field = $model->alias . '.' . $field;
+		} elseif ($model->isVirtualField($field)) {
+			$db = $model->getDataSource();
+			$field = $model->getVirtualField($field);
+			$field = $db->dispatchMethod('_quoteFields', array($field));
+			$field = '(' . $field . ')';
+		}
+		return $field;
 	}
 
 /**
@@ -431,6 +456,7 @@ class EagerLoader {
 
 		$options = $this->normalizeQuery($target, $options);
 		$query['fields'] = array_merge($query['fields'], $options['fields']);
+		$query = $this->normalizeQuery($target, $query);
 
 		foreach ($keys as $lhs => $rhs) {
 			$query = $this->addField($query, $lhs);
@@ -451,7 +477,7 @@ class EagerLoader {
  * Adds a field into the `fields` option of the query
  *
  * @param array $query Query
- * @param string $field Name of the field field
+ * @param string $field Name of the field
  * @return Modified query
  */
 	private function addField(array $query, $field) { // @codingStandardsIgnoreLine
