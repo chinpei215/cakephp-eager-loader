@@ -243,7 +243,7 @@ class EagerLoader {
 				$assocResults = array_merge($assocResults, $eachAssocResults);
 			}
 		} else {
-			$options['fields'][] = "($assocAlias.$assocKey) AS " . $db->name('EagerLoaderModel' . '__' . 'assoc_id');
+			$options['fields'][] = '(' . $db->name($assocAlias . '.' . $assocKey) . ') AS ' . $db->name('EagerLoaderModel' . '__' . 'assoc_id');
 			$options['conditions'][] = array("$assocAlias.$assocKey" => $ids);
 			$assocResults = $db->read($target, $options);
 		}
@@ -389,7 +389,7 @@ class EagerLoader {
 				if (strpos($field, $model->alias . '.') === 0) {
 					$field = substr($field, strlen($model->alias) + 1);
 				}
-				$as = ' AS ' . $model->alias . '__' . $field;
+				$as = ' AS ' . $db->name($model->alias . '__' . $field);
 			}
 			$field = $this->normalizeField($model, $field) . $as;
 		}
