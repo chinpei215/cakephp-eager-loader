@@ -384,14 +384,12 @@ class EagerLoader {
 
 		$query['fields'] = (array)$query['fields'];
 		foreach ($query['fields'] as &$field) {
-			$as = '';
 			if ($model->isVirtualField($field)) {
-				if (strpos($field, $model->alias . '.') === 0) {
-					$field = substr($field, strlen($model->alias) + 1);
-				}
-				$as = ' AS ' . $db->name($model->alias . '__' . $field);
+				$fields = $db->fields($model, null, array($field), false);
+				$field = $fields[0];
+			} else {
+				$field = $this->normalizeField($model, $field);
 			}
-			$field = $this->normalizeField($model, $field) . $as;
 		}
 		unset($field);
 

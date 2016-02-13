@@ -797,7 +797,7 @@ class EagerLoaderTest extends CakeTestCase {
 				),
 				array(
 					'fields' => array(
-						'(CASE WHEN Category.parent_id = 0 THEN 1 ELSE 0 END) AS Category__is_root',
+						'(CASE WHEN Category.parent_id = 0 THEN 1 ELSE 0 END) AS  Category__is_root',
 					),
 					'conditions' => array(
 						(object)array(
