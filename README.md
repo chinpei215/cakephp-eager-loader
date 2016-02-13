@@ -6,7 +6,7 @@
 
 ## Requirements
 
-* CakePHP 2.x
+* CakePHP 2.6+
 * PHP 5.3+
 
 ## Installation
@@ -19,10 +19,10 @@
 
 ```php
 $Comment->find('first', [
-	'contain' => array(
+	'contain' => [
 		'Article.User.Profile',
 		'User.Profile',
-	)
+	]
 ]);
 ```
 
