@@ -844,7 +844,7 @@ class EagerLoaderTest extends CakeTestCase {
 		);
 
 		if (isset($meta['habtmAlias'])) {
-			$meta['habtm'] = $parent->$meta['habtmAlias'];
+			$meta['habtm'] = $parent->{$meta['habtmAlias']};
 		}
 
 		if ($target->alias === 'NextApple') {
