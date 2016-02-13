@@ -13,13 +13,14 @@ env:
     - DB=mysql
     - CAKE_REF=2.8.0
 
-  matrix:
-    - 
-    - CAKE_REF=2.7.10
-    - CAKE_REF=2.6.12
-
 matrix:
   include:
+    - php: 5.3
+      env:
+        - CAKE_REF=2.6.12
+    - php: 5.3 
+      env:
+        - CAKE_REF=2.7.10
     - php: 5.3
       env:
         - DB=pgsql
