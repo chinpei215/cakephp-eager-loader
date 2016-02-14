@@ -868,7 +868,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				'name' => 'Category 1',
 				'created' => '2007-03-18 15:30:23',
 				'updated' => '2007-03-18 15:32:31',
-				'is_root' => true,
+				'is_root' => 1,
 			),
 			'ParentCategory' => array(),
 		);
@@ -896,6 +896,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		));
 
 		$expected = array(
+			// {{{
 			'Comment' => array(
 				'id' => '5',
 				'article_id' => '2',
@@ -934,6 +935,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				'created' => '2007-03-17 01:16:23',
 				'updated' => '2007-03-17 01:18:31'
 			)
+			// }}}
 		);
 
 		$this->assertEquals(2, $Comment->queryCount());
@@ -949,7 +951,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		$this->loadFixtures('Category');
 
 		$Category = ClassRegistry::init('Category');
-		$Category->find('all', array(
+		$results = $Category->find('all', array(
 			'fields' => array(
 				'Category.id',
 				'Category.parent_id',
@@ -962,8 +964,8 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				),
 			),
 			'conditions' => array(
-				'Category.is_root' => '0',
-				'ParentCategory.is_root' => '1',
+				'Category.is_root' => 0,
+				'ParentCategory.is_root' => 1,
 			),
 			'order' => array(
 				'ParentCategory.is_root',
@@ -971,6 +973,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		));
 
 		$expected = array(
+			// {{{
 			array(
 				'Category' => array(
 					'id' => 2,
@@ -983,6 +986,33 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 					'is_root' => 1,
 				),
 			),
+			array(
+				'Category' => array(
+					'id' => 3,
+					'parent_id' => 1,
+					'is_root' => 0,
+				),
+				'ParentCategory' => array(
+					'id' => 1,
+					'parent_id' => 0,
+					'is_root' => 1,
+				),
+			),
+			array(
+				'Category' => array(
+					'id' => 6,
+					'parent_id' => 5,
+					'is_root' => 0,
+				),
+				'ParentCategory' => array(
+					'id' => 5,
+					'parent_id' => 0,
+					'is_root' => 1,
+				),
+			),
+			// }}}
 		);
+
+		$this->assertEquals($expected, $results);
 	}
 }
