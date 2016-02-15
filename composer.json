@@ -6,7 +6,7 @@
 	"homepage": "https://github.com/chinpei215/cakephp-eager-loader",
 	"license": "MIT",
 	"require": {
-		"composer/installers": "*"
+		"composer/installers": "^1.0.23"
 	},
 	"extra": {
 		"installer-name": "EagerLoader"
