@@ -2,7 +2,7 @@
 	"name": "chinpei215/cakephp-eager-loader",
 	"description": "CakePHP 2.x plugin to make it possible to eager load",
 	"type": "cakephp-plugin",
-	"keywords": ["cakephp", "eager", "load"],
+	"keywords": ["cakephp", "eager", "load", "contain", "containable"],
 	"homepage": "https://github.com/chinpei215/cakephp-eager-loader",
 	"license": "MIT",
 	"require": {
