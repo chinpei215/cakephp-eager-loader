@@ -30,7 +30,7 @@ php composer.phar require chinpei215/cakephp-eager-loader
 * Load the plugin in your **app/Config/bootstrap.php** file:
 
 ```php
-Plugin::load('EagerLoader');
+CakePlugin::load('EagerLoader');
 ```
 
 * And [enable the behavior](http://book.cakephp.org/2.0/en/models/behaviors.html#using-behaviors)
