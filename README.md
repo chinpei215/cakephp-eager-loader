@@ -4,6 +4,10 @@
 
 # EagerLoader Plugin for CakePHP 2.x
 
+An eager loading beahavior plugin for CakePHP 2.x which is highly compatible to the
+[Containable behavior](http://book.cakephp.org/2.0/en/core-libraries/behaviors/containable.html)
+but generates better queries.
+
 ## Requirements
 
 * CakePHP 2.6+
@@ -11,9 +15,32 @@
 
 ## Installation
 
-* Put `EagerLoader` directory into your plugin directory. You can also install via Composer.
-* Enable `EagerLoader` plugin in your `app/Config/bootstrap.php` file.
-* Enable `EagerLoader.EagerLoader` behavior in your model.
+See the
+[How to Install Plugins](http://book.cakephp.org/2.0/en/plugins/how-to-install-plugins.html)
+in the CakePHP documentation for general help.
+
+* Put the `EagerLoader` directory into your plugin directory or
+  install the plugin with [Composer](https://getcomposer.org/) from the directory
+  where your **composer.json** file is located:
+
+```sh
+php composer.phar require chinpei215/cakephp-eager-loader
+```
+
+* Load the plugin in your **app/Config/bootstrap.php** file:
+
+```php
+Plugin::load('EagerLoader');
+```
+
+* And [enable the behavior](http://book.cakephp.org/2.0/en/models/behaviors.html#using-behaviors)
+  in your models or in your **app/Model/AppModel.php**:
+
+```` php
+class Post extends AppModel {
+    public $actsAs = array('EagerLoader.EagerLoader');
+}
+````
 
 ## Usage
 
