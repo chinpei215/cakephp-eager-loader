@@ -1,0 +1,33 @@
+# Change Log
+All notable changes to this project are documented in this file.
+This project adheres to [Semantic Versioning](http://semver.org/).
+
+## Unreleased
+- Added a change log.
+- Added a contribution guide. [#11](https://github.com/chinpei215/cakephp-eager-loader/pull/11).
+- Added .gitattributes file. [#9](https://github.com/chinpei215/cakephp-eager-loader/pull/9).
+- Added .gitignore file. [#8](https://github.com/chinpei215/cakephp-eager-loader/pull/8).
+- Added .editorconfig file. [#7](https://github.com/chinpei215/cakephp-eager-loader/pull/7).
+- Improved installation guide. [#4](https://github.com/chinpei215/cakephp-eager-loader/pull/4), [#10](https://github.com/chinpei215/cakephp-eager-loader/pull/10).
+- Improved composer.json. [#3](https://github.com/chinpei215/cakephp-eager-loader/pull/3) (Add two keywords).
+- Fixed API deprecation warning [#2](https://github.com/chinpei215/cakephp-eager-loader/pull/2) (Use caret for composer/installers dependency).
+
+## [Version 0.3.1](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.1)
+**2016-02-13**
+- Fixed PHP7-incompatible test.
+- Fixed invalid test cases.
+- Updated .travis.yml (Added PHP7.0 to the matrix).
+
+## [Version 0.3.0](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.0)
+**2016-02-13**
+- Fixed bug [#1](https://github.com/chinpei215/cakephp-eager-loader/issues/1) (Virtual fields do not work with associations).
+- Fixed an PDOException being thrown when using SQL Server.
+
+## [Version 0.2.0](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.2.0)
+**2016-02-11**
+- Fixed an PDOException being thrown when using table prefixes in a datasource.
+- Updated .travis.yml (Added CakePHP2.8 to the matrix).
+
+## [Version 0.1.0](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.1.0)
+**2016-01-12**
+- Initial release.
