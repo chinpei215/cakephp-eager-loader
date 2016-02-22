@@ -597,22 +597,27 @@ class EagerLoader {
 
 		if ($parent->useDbConfig !== $target->useDbConfig) {
 			return true;
-		} elseif (!empty($external)) {
+		}
+		if (!empty($external)) {
 			return true;
-		} elseif (!empty($many)) {
+		}
+		if (!empty($many)) {
 			return true;
-		} elseif (!empty($finderQuery)) {
+		}
+		if (!empty($finderQuery)) {
 			return true;
-		} elseif ($this->hasLimitOffset($options)) {
+		}
+		if ($this->hasLimitOffset($options)) {
 			return true;
-		} elseif ($context['forceExternal']) {
+		}
+		if ($context['forceExternal']) {
 			return true;
-		} else {
-			$metas = $this->metas($context['root']);
-			$aliases = Hash::extract($metas, '{n}.alias');
-			if (in_array($alias, $aliases, true)) {
-				return true;
-			}
+		}
+		
+		$metas = $this->metas($context['root']);
+		$aliases = Hash::extract($metas, '{n}.alias');
+		if (in_array($alias, $aliases, true)) {
+			return true;
 		}
 
 		return false;
