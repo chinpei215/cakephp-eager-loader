@@ -39,15 +39,6 @@ class EagerLoaderTest extends CakeTestCase {
 	}
 
 /**
- * tearDown
- *
- * @return void
- */
-	public function tearDown() {
-		parent::tearDown();
-	}
-
-/**
  * Tests reformatContain method
  *
  * @param array|string $contain Value of `contain` option
