@@ -2,7 +2,10 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## [Version 0.3.2](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.2)
+**2016-03-17**
+- Removed superfluous tearDown(). [#16](https://github.com/chinpei215/cakephp-eager-loader/pull/16).
+- Simplified isExternal(). [#15](https://github.com/chinpei215/cakephp-eager-loader/pull/15).
 - Added a change log.
 - Added a contribution guide. [#11](https://github.com/chinpei215/cakephp-eager-loader/pull/11).
 - Added .gitattributes file. [#9](https://github.com/chinpei215/cakephp-eager-loader/pull/9).
@@ -10,7 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added .editorconfig file. [#7](https://github.com/chinpei215/cakephp-eager-loader/pull/7).
 - Improved installation guide. [#4](https://github.com/chinpei215/cakephp-eager-loader/pull/4), [#10](https://github.com/chinpei215/cakephp-eager-loader/pull/10).
 - Improved composer.json. [#3](https://github.com/chinpei215/cakephp-eager-loader/pull/3) (Add two keywords).
-- Fixed API deprecation warning [#2](https://github.com/chinpei215/cakephp-eager-loader/pull/2) (Use caret for composer/installers dependency).
+- Fixed API deprecation warning. [#2](https://github.com/chinpei215/cakephp-eager-loader/pull/2) (Use caret for composer/installers dependency).
 
 ## [Version 0.3.1](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.1)
 **2016-02-13**
