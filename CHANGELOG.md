@@ -2,6 +2,10 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Version 0.3.3](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.3)
+**2016-09-10**
+- Fixed incorrect propertyPath on deep associations. [#19](https://github.com/chinpei215/cakephp-eager-loader/issues/19)
+
 ## [Version 0.3.2](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.2)
 **2016-03-17**
 - Removed superfluous tearDown(). [#16](https://github.com/chinpei215/cakephp-eager-loader/pull/16).
