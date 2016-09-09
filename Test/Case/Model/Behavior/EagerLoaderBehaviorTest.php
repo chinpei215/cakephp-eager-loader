@@ -382,6 +382,133 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 				),
 				// }}}
 			),
+			array(
+				// {{{ #6
+				'Article',
+				array(
+					'fields' => 'Article.id',
+					'contain' => array(
+						'FirstComment' => array('fields' => 'id'),
+						'SecondComment' => array('fields' => 'id'),
+					),
+				),
+				array('Article', 'Comment'),
+				7,
+				array(
+					array(
+						'Article' => array(
+							'id' => '1',
+						),
+						'FirstComment' => array(
+							'id' => '1',
+							'article_id' => '1',
+						),
+						'SecondComment' => array(
+							'id' => '2',
+							'article_id' => '1',
+						),
+					),
+					array(
+						'Article' => array(
+							'id' => '2',
+						),
+						'FirstComment' => array(
+							'id' => '5',
+							'article_id' => '2',
+						),
+						'SecondComment' => array(
+							'id' => '6',
+							'article_id' => '2',
+						),
+					),
+					array(
+						'Article' => array(
+							'id' => '3',
+						),
+						'FirstComment' => array(),
+						'SecondComment' => array(),
+					),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #7 Deep associations
+				'User',
+				array(
+					'fields' => 'User.id',
+					'contain' => array(
+						'Article' => array(
+							'fields' => array('Article.id'),
+							'User' => array(
+								'fields' => array('User.id'),
+								'Profile' => array(
+									'fields' => array('Profile.id'),
+								),
+								'Article' => array(
+									'fields' => array('Article.id'),
+									'User' => array(
+										'fields' => array('User.id'),
+									),
+									'Tag' => array(
+										'fields' => array('Tag.id'),
+									),
+								),
+							),
+						),
+					),
+					'conditions' => array(
+						'User.id' => '3',
+					),
+				),
+				array('User', 'Article', 'Profile', 'ArticlesTag', 'Tag'),
+				4,
+				array(
+					array(
+						'User' => array(
+							'id' => 3,
+						),
+						'Article' => array(
+							array(
+								'id' => '2',
+								'user_id' => '3',
+								'User' => array(
+									'id' => '3',
+									'Profile' => array(
+										'id' => '1',
+										'user_id' => '3',
+									),
+									'Article' => array(
+										array(
+											'id' => '2',
+											'user_id' => '3',
+											'User' => array(
+												'id' => '3',
+											),
+											'Tag' => array(
+												array(
+													'id' => '1',
+													'ArticlesTag' => array(
+														'article_id' => '2',
+														'tag_id' => '1',
+													),
+												),
+												array(
+													'id' => '3',
+													'ArticlesTag' => array(
+														'article_id' => '2',
+														'tag_id' => '3',
+													),
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+				// }}}
+			),
 		);
 	}
 

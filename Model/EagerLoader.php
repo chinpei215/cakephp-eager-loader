@@ -556,6 +556,7 @@ class EagerLoader {
 		);
 
 		if ($this->isExternal($context, $meta)) {
+			$meta['propertyPath'] = ($context['propertyPath'] ? $parentAlias . '.' : '') . $alias;
 			$meta['external'] = true;
 
 			$context['root'] = $aliasPath;
