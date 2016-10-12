@@ -2,6 +2,10 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Version 0.3.4](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.4)
+**2016-10-12**
+- Fixed an `E_NOTICE` error occurred when parent record not found.
+
 ## [Version 0.3.3](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.3)
 **2016-09-10**
 - Fixed incorrect propertyPath on deep associations. [#19](https://github.com/chinpei215/cakephp-eager-loader/issues/19)
