@@ -27,6 +27,7 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		'core.category',
 		'plugin.EagerLoader.external_comment',
 		'plugin.EagerLoader.profile',
+		'plugin.EagerLoader.articles_category',
 	);
 
 /**
@@ -501,6 +502,52 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 												),
 											),
 										),
+									),
+								),
+							),
+						),
+					),
+				),
+				// }}}
+			),
+			array(
+				// {{{ #8 Parent not exists
+				'Category',
+				array(
+					'fields' => 'Category.id',
+					'contain' => array(
+						'ParentCategory' => array(
+							'fields' => array('ParentCategory.id'),
+							'Article' => array(
+								'fields' => array('Article.id'),
+							),
+						),
+					),
+					'conditions' => array('Category.id' => array(1, 2)),
+				),
+				array('Category', 'Article', 'ArticlesCategory'),
+				2,
+				array(
+					array(
+						'Category' => array(
+							'id' => '1',
+							'parent_id' => '0',
+						),
+						'ParentCategory' => array(),
+					),
+					array(
+						'Category' => array(
+							'id' => '2',
+							'parent_id' => '1',
+						),
+						'ParentCategory' => array(
+							'id' => '1',
+							'Article' => array(
+								array(
+									'id' => '1',
+									'ArticlesCategory' => array(
+										'article_id' => '1',
+										'category_id' => '1',
 									),
 								),
 							),

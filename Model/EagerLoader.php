@@ -260,6 +260,10 @@ class EagerLoader {
 		}
 
 		foreach ($results as &$result) {
+			if (!isset($result[$parentAlias][$parentKey])) {
+				continue;
+			}
+
 			$assoc = array();
 			foreach ($assocResults as $assocResult) {
 				if ((string)$result[$parentAlias][$parentKey] === (string)$assocResult['EagerLoaderModel']['assoc_id']) {
