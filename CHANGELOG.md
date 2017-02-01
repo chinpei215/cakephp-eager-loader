@@ -2,6 +2,11 @@
 All notable changes to this project are documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Version 0.4.0](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.4.0)
+**2017-02-02**
+- Support earlier versions of CakePHP.
+- Removed EagerLoader::ids().
+
 ## [Version 0.3.4](https://github.com/chinpei215/cakephp-eager-loader/releases/tag/0.3.4)
 **2016-10-12**
 - Fixed an `E_NOTICE` error occurred when parent record not found.

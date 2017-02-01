@@ -11,7 +11,7 @@ but generates better queries.
 
 ## Requirements
 
-* CakePHP 2.6+
+* CakePHP 2.x
 * PHP 5.3+
 
 ## Installation
@@ -57,22 +57,22 @@ $Comment->find('first', [
 `EagerLoaderBehavior` has a high compatibility with `ContainableBehavior`, but generates better queries.
 In the above example, only 2 queries will be executed such as the following:
 ```sql
-SELECT 
+SELECT
 	Comment.id, ...
-FROM 
+FROM
 	comments AS Comment
 	LEFT JOIN articles AS Article ON (Comment.article_id = Article.id)
 	LEFT JOIN users AS User ON (Article.user_id = User.id)
 	LEFT JOIN profiles AS Profile ON (User.id = Profile.user_id)
-WHERE 
+WHERE
 	1 = 1
 ```
 ```sql
 SELECT
 	User.id, ...
 FROM
-	users AS User 
-	LEFT JOIN profiles AS Profile ON (User.id = Profile.user_id) 
+	users AS User
+	LEFT JOIN profiles AS Profile ON (User.id = Profile.user_id)
 WHERE
 	User.id IN (1, 2, 3)
 ```
@@ -87,7 +87,7 @@ Then disabling `EagerLoaderBehavior` on the fly, you can use `ContainableBehavio
 ```php
 $Comment->Behaviors->disable('EagerLoader');
 $Comment->Behaviors->load('Containable');
-$Comment->contain('Article'); 
+$Comment->contain('Article');
 $result = $Comment->find('first');
 ```
 
