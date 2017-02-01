@@ -12,25 +12,31 @@ env:
     - PLUGIN_NAME=EagerLoader
     - REQUIRE=""
     - DB=mysql
-    - CAKE_REF=2.8.0
+    - CAKE_REF=2.9.5
 
 matrix:
   include:
     - php: 5.3
       env:
-        - CAKE_REF=2.6.12
-    - php: 5.3 
+        - CAKE_REF=2.4.10
+    - php: 5.3
       env:
-        - CAKE_REF=2.7.10
+        - CAKE_REF=2.5.9
+    - php: 5.3
+      env:
+        - CAKE_REF=2.6.13
+    - php: 5.3
+      env:
+        - CAKE_REF=2.7.11
+    - php: 5.3
+      env:
+        - CAKE_REF=2.8.9
     - php: 5.3
       env:
         - DB=pgsql
     - php: 5.3
       env:
         - DB=sqlite
-    - php: 5.6
-      env:
-        - COVERALLS=1
     - php: 5.6
       env:
         - PHPCS=1
