@@ -977,47 +977,6 @@ class EagerLoaderBehaviorTest extends CakeTestCase {
 		);
 		$result = $Apple->find('first', $options);
 		$this->assertEquals($expected, $result);
-
-		$Apple->Behaviors->load('Containable');
-		$Apple->Behaviors->disable('EagerLoader');
-
-		$expected = array(
-			// {{{
-			'Apple' => array(
-				'id' => '3',
-			),
-			'SampleA' => array(
-				'id' => '1',
-				'apple_id' => '3',
-				'name' => 'sample1',
-				'Apple' => array(
-					'id' => '1',
-					'apple_id' => '2',
-					'ParentApple' => array(
-						'id' => '2',
-						'name' => 'Bright Red Apple'
-					)
-				)
-			),
-			'Sample' => array( // ContainableBehavior will contain Sample wrongly
-				array(
-					'id' => '1',
-					'apple_id' => '3',
-					'name' => 'sample1',
-					'Apple' => array(
-						'id' => '1',
-						'apple_id' => '2',
-						'ParentApple' => array(
-							'id' => '2',
-							'name' => 'Bright Red Apple'
-						)
-					)
-				)
-			),
-			// }}}
-		);
-		$result = $Apple->find('first', $options);
-		$this->assertEquals($expected, $result);
 	}
 
 /**

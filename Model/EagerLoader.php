@@ -400,8 +400,8 @@ class EagerLoader {
 				$query['conditions'][] = array($key => $val);
 			} elseif ($model->isVirtualField($key)) {
 				unset($query['conditions'][$key]);
-				$expression = $db->dispatchMethod('_parseKey', array($key, $val, $model));
-				$query['conditions'][] = $db->expression($expression);
+				$conditions = $db->conditionKeysToString(array($key => $val), true, $model);
+				$query['conditions'][] = $db->expression($conditions[0]);
 			}
 		}
 
@@ -643,7 +643,18 @@ class EagerLoader {
  */
 	private function filterResults(Model $parent, $alias, array $results) { // @codingStandardsIgnoreLine
 		$db = $parent->getDataSource();
-		$db->dispatchMethod('_filterResultsInclusive', array(&$results, $parent, array($alias)));
+
+		$target = $parent->$alias;
+
+		foreach ($results as $key => &$result) {
+			$data = $target->afterFind(array(array($alias => $result[$alias])), false);
+			if (isset($data[0][$alias])) {
+				$result[$alias] = $data[0][$alias];
+			} else {
+				unset($results[$key]);
+			}
+		}
+
 		return $results;
 	}
 }
