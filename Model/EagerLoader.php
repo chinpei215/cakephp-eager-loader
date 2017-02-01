@@ -1,4 +1,6 @@
 <?php
+App::uses('CakeText', 'Utility');
+
 /**
  * EagerLoader class
  *
@@ -25,7 +27,13 @@ class EagerLoader {
  */
 	public function __construct() {
 		ClassRegistry::init('EagerLoader.EagerLoaderModel');
-		$this->id = max(self::ids()) + 1;
+
+		if (class_exists('CakeText')) {
+			$this->id = CakeText::uuid();
+		} else {
+			App::uses('String', 'Utility');
+			$this->id = String::uuid();
+		}
 	}
 
 /**
@@ -46,7 +54,7 @@ class EagerLoader {
 
 					self::$handlers[$EagerLoader->id] = $EagerLoader;
 					if (count(self::$handlers) > 1000) {
-						$id = min(self::ids());
+						$id = key(self::$handlers);
 						unset(self::$handlers[$id]);
 					}
 				}
@@ -78,19 +86,6 @@ class EagerLoader {
 			}
 		}
 		return $results;
-	}
-
-/**
- * Returns object ids
- *
- * @return array
- */
-	private static function ids() { // @codingStandardsIgnoreLine
-		$ids = array_keys(self::$handlers);
-		if (!$ids) {
-			return array(0);
-		}
-		return $ids;
 	}
 
 /**

@@ -1475,10 +1475,10 @@ class EagerLoaderTest extends CakeTestCase {
 			EagerLoader::handleBeforeFind($User, array('contain' => 'Article'));
 		}
 
-		$method = new ReflectionMethod($this->EagerLoader, 'ids');
-		$method->setAccessible(true);
-		$ids = $method->invoke($this->EagerLoader);
-		$this->assertEquals(1000, count($ids));
+		$prop = new ReflectionProperty($this->EagerLoader, 'handlers');
+		$prop->setAccessible(true);
+		$handlers = $prop->getValue(null);
+		$this->assertEquals(1000, count($handlers));
 	}
 
 /**
