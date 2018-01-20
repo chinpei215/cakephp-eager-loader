@@ -8,7 +8,7 @@ App::uses('CakeText', 'Utility');
  */
 class EagerLoader {
 
-	private static $handlers = array(); // @codingStandardsIgnoreLine
+	private static $instances = array(); // @codingStandardsIgnoreLine
 
 	private $id; // @codingStandardsIgnoreLine
 
@@ -50,17 +50,36 @@ class EagerLoader {
 					$query['recursive'] = -1;
 				} else {
 					$EagerLoader = new EagerLoader();
+					$EagerLoader->collectGarbage($model);
+					self::$instances[$EagerLoader->id] = $EagerLoader;
 					$query = $EagerLoader->transformQuery($model, $query);
-
-					self::$handlers[$EagerLoader->id] = $EagerLoader;
-					if (count(self::$handlers) > 1000) {
-						$id = key(self::$handlers);
-						unset(self::$handlers[$id]);
-					}
 				}
 			}
 		}
 		return $query;
+	}
+
+/**
+ * Gabage collection
+ *
+ * @param Model $model Model
+ * @return void
+ */
+	private function collectGarbage(Model $model) { // @codingStandardsIgnoreLine
+		if (count(self::$instances) >= 1000) {
+			array_shift(self::$instances);
+		}
+
+		$db = $model->getDataSource();
+		if (!$db instanceof DboSource) {
+			return;
+		}
+
+		$class = get_class($db);
+		$cache =& $class::$methodCache['fields'];
+		if (!is_array($cache) || count($cache) >= 1000) {
+			$cache = array();
+		}
 	}
 
 /**
@@ -75,12 +94,12 @@ class EagerLoader {
 		if (is_array($results)) {
 			$id = Hash::get($results, '0.EagerLoaderModel.id');
 			if ($id) {
-				if (empty(self::$handlers[$id])) {
+				if (empty(self::$instances[$id])) {
 					throw new UnexpectedValueException(sprintf('EagerLoader "%s" is not found', $id));
 				}
 
-				$EagerLoader = self::$handlers[$id];
-				unset(self::$handlers[$id]);
+				$EagerLoader = self::$instances[$id];
+				unset(self::$instances[$id]);
 
 				$results = $EagerLoader->transformResults($model, $results);
 			}
@@ -96,8 +115,6 @@ class EagerLoader {
  * @return array Modified query
  */
 	private function transformQuery(Model $model, array $query) { // @codingStandardsIgnoreLine
-		ClassRegistry::init('EagerLoader.EagerLoaderModel');
-
 		$contain = $this->reformatContain($query['contain']);
 		foreach ($contain['contain'] as $key => $val) {
 			$this->parseContain($model, $key, $val);
@@ -509,7 +526,7 @@ class EagerLoader {
 
 		$types = $parent->getAssociated();
 		if (!isset($types[$alias])) {
-			throw new InvalidArgumentException(sprintf('Model "%s" is not associated with model "%s"', $parent->alias, $alias), E_USER_WARNING);
+			throw new InvalidArgumentException(sprintf('Model "%s" is not associated with model "%s"', $parent->alias, $alias));
 		}
 
 		$parentAlias = $parent->alias;

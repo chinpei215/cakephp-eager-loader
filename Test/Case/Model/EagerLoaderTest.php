@@ -1467,18 +1467,36 @@ class EagerLoaderTest extends CakeTestCase {
  *
  * @return void
  */
-	public function testGarbageCollection() {
+	public function testCollectGarbage() {
 		$this->loadFixtures('User', 'Article');
 		$User = ClassRegistry::init('User');
 
+		$db = $User->getDataSource();
+		$db->flushMethodCache();
+
+		$ids = array();
+
 		for ($i = 0; $i < 1100; ++$i) {
-			EagerLoader::handleBeforeFind($User, array('contain' => 'Article'));
+			$query = EagerLoader::handleBeforeFind($User, array('contain' => 'Article'));
+			$db->fields($User, null, $query['fields']);
+
+			if (preg_match("/\('(.+)'\).*EagerLoaderModel__id/", end($query['fields']), $matches)) {
+				$id = $matches[1];
+				$ids[$i] = $id;
+			}
 		}
 
-		$prop = new ReflectionProperty($this->EagerLoader, 'handlers');
+		$ids = array_slice($ids, -1000);
+
+		$prop = new ReflectionProperty('EagerLoader', 'instances');
 		$prop->setAccessible(true);
-		$handlers = $prop->getValue(null);
-		$this->assertEquals(1000, count($handlers));
+		$instances = $prop->getValue(null);
+		$this->assertEquals(1000, count($instances));
+		$this->assertEquals($ids, array_keys($instances));
+
+		$class = get_class($db);
+		$cache = $class::$methodCache['fields'];
+		$this->assertEquals($db instanceof Postgres ? 0 : 100, count($cache));
 	}
 
 /**
