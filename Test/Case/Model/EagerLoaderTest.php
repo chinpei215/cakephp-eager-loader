@@ -1496,7 +1496,7 @@ class EagerLoaderTest extends CakeTestCase {
 
 		$class = get_class($db);
 		$cache = $class::$methodCache['fields'];
-		$this->assertEquals(100, count($cache));
+		$this->assertEquals($db instanceof Postgres ? 0 : 100, count($cache));
 	}
 
 /**
